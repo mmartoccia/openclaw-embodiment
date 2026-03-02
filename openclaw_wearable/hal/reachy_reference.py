@@ -19,7 +19,7 @@ Install requirements:
 Usage:
   from reachy_mini import ReachyMini
   from openclaw_wearable.hal.reachy_reference import (
-      ReachyHeadEncoderIMU, ReachyCameraHAL, ReachyMicrophoneHAL,
+      ReachyMotionTracker, ReachyCameraHAL, ReachyMicrophoneHAL,
       ReachyAudioOutputHAL, ReachyDisplayHAL, ReachyTransportHAL,
   )
 
@@ -27,7 +27,7 @@ Usage:
   reachy.__enter__()  # or use as context manager
 
   registry = HALRegistry()
-  registry.register_imu(ReachyHeadEncoderIMU(reachy))
+  registry.register_imu(ReachyMotionTracker(reachy))
   registry.register_camera(ReachyCameraHAL(reachy))
   registry.register_microphone(ReachyMicrophoneHAL(reachy))
   registry.register_audio_output(ReachyAudioOutputHAL(reachy))
@@ -91,20 +91,11 @@ def _ms() -> int:
 # IMU HAL -- Head Encoder Substitute
 # ---------------------------------------------------------------------------
 
-class ReachyHeadEncoderIMU(IMUHal):
-    """Converts Reachy head servo encoder positions to IMU-like gyro signals.
+class ReachyMotionTracker(IMUHal):
+    """Converts Reachy head servo encoder positions to motion signals for the TriggerDetector.
 
-    Since the Reachy Mini Lite has no physical IMU, this HAL polls the head
-    servo present_position at the configured rate and computes angular velocity
-    from position deltas.  The resulting gyro values (degrees/s) are compatible
-    with OpenClaw's TriggerDetector state machine:
-
-      - Saccade  = large position delta  (head moving fast to new orientation)
-      - Fixation = near-zero delta sustained for fixation_duration_ms
-
-    Tuning note: robot head movements are slower than human saccades.
-    Recommend TriggerConfig(saccade_threshold_dps=30, fixation_threshold_dps=5,
-                            saccade_duration_ms=150, fixation_duration_ms=600)
+    Detects head repositioning events (not biological saccades) as angular velocity
+    from position deltas.
     """
 
     HAL_VERSION = "1.0.0"
@@ -161,7 +152,7 @@ class ReachyHeadEncoderIMU(IMUHal):
 
     def get_device_info(self) -> dict:
         return {
-            "name": "reachy-head-encoder-imu",
+            "name": "reachy-motion-tracker",
             "type": "encoder_substitute",
             "axes": 3,
             "note": "No physical IMU in Lite; derived from servo encoder positions",

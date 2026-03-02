@@ -8,18 +8,22 @@ from .base import (
     AudioOutputHal,
     CameraFrame,
     CameraHal,
+    ChargingState,
     ClassificationResult,
     ClassifierHal,
     DisplayCard,
     DisplayHal,
     IMUHal,
     IMUSample,
+    JointState,
     MicrophoneHal,
+    PowerHal,
+    PowerSource,
     SendResult,
     TransportHal,
     TransportState,
 )
-from .reachy_reference import ReachyActuatorHAL
+from .reachy_reference import ReachyActuatorHAL, ReachyMotionTracker
 
 __all__ = [
     "IMUHal",
@@ -39,5 +43,10 @@ __all__ = [
     "ActuatorCommand",
     "ActuatorHal",
     "ActuatorResult",
+    "JointState",
+    "ChargingState",
+    "PowerSource",
+    "PowerHal",
     "ReachyActuatorHAL",
+    "ReachyMotionTracker",
 ]

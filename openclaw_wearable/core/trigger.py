@@ -34,6 +34,10 @@ class TriggerConfig:
     refractory_period_ms: int = 700
 
 
+#: Alias for TriggerConfig. Use named profiles for device-specific tuning.
+TriggerProfile = TriggerConfig
+
+
 class TriggerDetector:
     """State machine implementing IDLE->SACCADE->FIXATION->CAPTURE."""
 
@@ -83,3 +87,32 @@ class TriggerDetector:
                 self._fixation_start = 0
             return None
         return None
+
+
+# ---------------------------------------------------------------------------
+# Curated device profiles -- real-world tuned parameters
+# ---------------------------------------------------------------------------
+
+REACHY_MINI_TRIGGER_PROFILE = TriggerConfig(
+    polling_hz=10,
+    saccade_threshold_dps=30.0,     # Robot head moves slower than human saccade
+    saccade_duration_ms=150,
+    fixation_threshold_dps=5.0,
+    fixation_duration_ms=600,        # Longer fixation for deliberate robot gaze
+    motion_reject_threshold_dps=120.0,
+    motion_reject_duration_ms=200,
+    refractory_period_ms=2000,       # 2s between captures (robot pacing)
+)
+"""Tuned for Reachy Mini Lite head servo encoder input at 10Hz polling."""
+
+GLASSES_TRIGGER_PROFILE = TriggerConfig(
+    polling_hz=25,
+    saccade_threshold_dps=180.0,     # Human saccade: fast eye/head movement
+    saccade_duration_ms=200,
+    fixation_threshold_dps=20.0,
+    fixation_duration_ms=400,
+    motion_reject_threshold_dps=280.0,
+    motion_reject_duration_ms=150,
+    refractory_period_ms=700,
+)
+"""Tuned for glasses/wearables with real IMU at 25Hz polling."""

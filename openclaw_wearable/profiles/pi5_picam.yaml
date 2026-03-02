@@ -1,0 +1,11 @@
+# OpenClaw Embodiment SDK -- Raspberry Pi 5 + PiCamera device profile
+name: pi5-picam
+display_name: "Raspberry Pi 5 with PiCamera Module 3"
+transport: ble
+trigger_profile: GLASSES_TRIGGER_PROFILE
+capabilities:
+  - camera
+  - microphone
+  - transport
+  - motion_tracking
+notes: "Requires pi3_reference HAL. BLE transport to OpenClaw gateway."

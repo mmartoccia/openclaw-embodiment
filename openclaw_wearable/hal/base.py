@@ -126,6 +126,14 @@ class CameraHal(HALBase, ABC):
     def capture_frame(self) -> CameraFrame:
         """Capture frame."""
 
+    def get_raw_frame(self) -> Optional[bytes]:
+        """Return raw unprocessed frame bytes. Override for device-specific access.
+        Default implementation calls capture_frame() and returns frame.data."""
+        try:
+            return self.capture_frame().data
+        except Exception:
+            return None
+
     @abstractmethod
     def shutdown(self) -> None:
         """Shutdown camera."""
@@ -149,6 +157,15 @@ class MicrophoneHal(HALBase, ABC):
     @abstractmethod
     def get_buffer(self, duration_ms: int) -> AudioChunk:
         """Fetch buffered audio."""
+
+    def get_doa(self) -> Optional[Tuple[float, Optional[float]]]:
+        """Return Direction of Arrival as (azimuth_degrees, elevation_degrees).
+
+        Azimuth is -180 to 180 (0 = front). Elevation is -90 to 90 (optional).
+        Returns None if DoA is not supported or no sound detected.
+        Default implementation returns None (override for mic arrays with DoA support).
+        """
+        return None
 
     @abstractmethod
     def shutdown(self) -> None:
@@ -260,6 +277,17 @@ class AudioOutputHal(HALBase, ABC):
 # ---------------------------------------------------------------------------
 
 @dataclass
+class JointState:
+    """State snapshot for a single robot joint."""
+
+    joint_id: str
+    position_degrees: float
+    velocity_dps: float
+    load_percent: float
+    temperature_celsius: Optional[float] = None
+
+
+@dataclass
 class ActuatorCommand:
     """Command envelope for actuator dispatch."""
 
@@ -291,6 +319,12 @@ class ActuatorHal(HALBase, ABC):
     def execute(self, command: ActuatorCommand) -> ActuatorResult:
         """Execute an actuator command."""
 
+    def send_raw_command(self, raw: bytes) -> Optional[bytes]:
+        """Send a raw command bytes directly to the actuator hardware.
+        Override for device-specific raw protocol access.
+        Default implementation raises NotImplementedError -- must be overridden to use."""
+        raise NotImplementedError("send_raw_command not implemented for this device")
+
     @abstractmethod
     def stop_all(self) -> None:
         """Emergency stop all actuators."""
@@ -299,6 +333,58 @@ class ActuatorHal(HALBase, ABC):
     def get_capabilities(self) -> list:
         """Return list of supported action strings."""
 
+    def get_joint_states(self) -> dict:
+        """Return current state of all joints as {joint_id: JointState}.
+        Override for devices that expose joint telemetry.
+        Default returns empty dict."""
+        return {}
+
     @abstractmethod
     def shutdown(self) -> None:
         """Shutdown actuator system."""
+
+
+# ---------------------------------------------------------------------------
+# Power management layer
+# ---------------------------------------------------------------------------
+
+class ChargingState(Enum):
+    """Battery charging state."""
+
+    CHARGING = "charging"
+    DISCHARGING = "discharging"
+    FULL = "full"
+    UNKNOWN = "unknown"
+
+
+class PowerSource(Enum):
+    """Active power source."""
+
+    BATTERY = "battery"
+    WALL = "wall"
+    USB = "usb"
+    UNKNOWN = "unknown"
+
+
+class PowerHal(HALBase, ABC):
+    """Power management abstraction."""
+
+    @abstractmethod
+    def get_battery_percent(self) -> float:
+        """Return battery level 0.0-100.0. Returns -1.0 if no battery present."""
+
+    @abstractmethod
+    def get_charging_state(self) -> ChargingState:
+        """Return current charging state."""
+
+    @abstractmethod
+    def get_power_source(self) -> PowerSource:
+        """Return active power source."""
+
+    @abstractmethod
+    def register_low_battery_callback(self, threshold: float, callback: Callable[[], None]) -> None:
+        """Register callback fired when battery drops below threshold percent."""
+
+    @abstractmethod
+    def shutdown(self) -> None:
+        """Shutdown power monitoring."""

@@ -1,0 +1,18 @@
+# OpenClaw Embodiment SDK -- Reachy Mini Lite device profile
+name: reachy-mini
+display_name: "Reachy Mini Lite (Pollen Robotics / HF)"
+transport: http
+transport_host: "localhost"
+transport_port: 18800
+actuator_host: "localhost"
+actuator_port: 50055
+trigger_profile: REACHY_MINI_TRIGGER_PROFILE
+capabilities:
+  - camera
+  - microphone
+  - audio_output
+  - display
+  - actuator
+  - motion_tracking
+  - doa
+notes: "No physical IMU in Lite version. Uses ReachyMotionTracker (head encoder positions as motion proxy)."
