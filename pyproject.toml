@@ -1,0 +1,92 @@
+[build-system]
+requires = ["setuptools>=68.2.2", "wheel>=0.42.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openclaw-wearable"
+version = "0.1.0"
+description = "OpenClaw Wearable OS SDK"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9,<3.13"
+authors = [
+  { name = "OpenClaw Contributors" }
+]
+keywords = ["wearable", "openclaw", "ble", "imu", "context"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent"
+]
+dependencies = [
+  "numpy==1.26.4",
+  "bleak==0.22.3",
+  "Pillow==10.4.0",
+  "opencv-python-headless==4.10.0.84",
+  "PyYAML==6.0.2",
+  "httpx==0.27.2",
+  "pydantic==2.9.2",
+  "typing-extensions==4.12.2",
+  "tflite-runtime==2.14.0; platform_machine == 'armv7l' or platform_machine == 'aarch64'",
+  "typer==0.12.5",
+  "rich==13.9.2"
+]
+
+[project.optional-dependencies]
+frame = [
+  "frame-sdk==0.7.1"
+]
+pi3 = [
+  "picamera2==0.3.23",
+  "smbus2==0.4.3",
+  "pyaudio==0.2.14",
+  "opuslib==3.0.1"
+]
+dev = [
+  "pytest==8.3.3",
+  "pytest-asyncio==0.24.0",
+  "pytest-cov==5.0.0",
+  "pytest-benchmark==4.0.0",
+  "ruff==0.6.9",
+  "mypy==1.11.2",
+  "pip-licenses==5.0.0",
+  "build==1.2.2",
+  "twine==5.1.1"
+]
+
+[project.scripts]
+openclaw-wearable = "openclaw_wearable.cli.main:app"
+
+[project.entry-points."openclaw_wearable.hal.imu"]
+pi_imu = "openclaw_wearable.hal.pi3_reference:PiIMU"
+
+[project.entry-points."openclaw_wearable.hal.camera"]
+pi_camera = "openclaw_wearable.hal.pi3_reference:PiCamera"
+
+[project.entry-points."openclaw_wearable.hal.transport"]
+pi_ble = "openclaw_wearable.hal.pi3_reference:PiBLETransport"
+pi_wifi = "openclaw_wearable.hal.pi3_reference:PiWiFiTransport"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"openclaw_wearable" = ["models/*.tflite", "config/*.yaml"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-q --strict-markers"
+testpaths = ["tests"]
+markers = [
+  "hardware: requires physical hardware",
+  "integration: integration tests",
+  "fuzz: transport fuzz tests"
+]
