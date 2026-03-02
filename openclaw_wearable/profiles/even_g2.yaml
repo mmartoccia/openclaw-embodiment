@@ -1,0 +1,10 @@
+name: even-g2
+display_name: "Even Realities G2 Smart Glasses"
+transport: ble
+trigger_profile: GLASSES_TRIGGER_PROFILE
+capabilities:
+  - microphone
+  - display
+  - transport
+  - motion_tracking
+notes: "Dual-arm BLE (left connects first, right after ACK). LC3 audio format. BMP display packets (194 bytes, seq 0-255). No camera in G2 -- uses visual field inference from microphone context. Requires: pip install bleak. Protocol: github.com/even-realities/EvenDemoApp (BSD-2-Clause)."

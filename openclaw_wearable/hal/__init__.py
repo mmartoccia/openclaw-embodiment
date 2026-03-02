@@ -39,6 +39,13 @@ from .pi_zero2w_reference import (
     PiZero2WTransportHAL,
     PIZERO2W_TRIGGER_PROFILE,
 )
+from .even_g2_reference import (
+    G2RSSIMotionProxy,
+    G2MicrophoneHAL,
+    G2DisplayHAL,
+    G2TransportHAL,
+    G2_TRIGGER_PROFILE,
+)
 
 __all__ = [
     "IMUHal",
@@ -81,4 +88,10 @@ __all__ = [
     "PiZero2WMicrophoneHAL",
     "PiZero2WTransportHAL",
     "PIZERO2W_TRIGGER_PROFILE",
+    # Even Realities G2 Smart Glasses
+    "G2RSSIMotionProxy",
+    "G2MicrophoneHAL",
+    "G2DisplayHAL",
+    "G2TransportHAL",
+    "G2_TRIGGER_PROFILE",
 ]

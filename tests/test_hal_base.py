@@ -169,3 +169,34 @@ class TestNewProfiles:
         assert isinstance(profile, dict)
         assert "name" in profile
         assert profile["name"] == "frame-glasses"
+
+
+class TestG2Profile:
+    """Smoke tests for Even Realities G2 HAL profile."""
+
+    def test_g2_rssi_motion_proxy_is_imu_hal(self):
+        """G2RSSIMotionProxy must be an IMUHal subclass."""
+        from openclaw_wearable.hal.even_g2_reference import G2RSSIMotionProxy
+        from openclaw_wearable.hal.base import IMUHal
+
+        proxy = G2RSSIMotionProxy(
+            left_address="AA:BB:CC:DD:EE:01",
+            right_address="AA:BB:CC:DD:EE:02",
+        )
+        assert isinstance(proxy, IMUHal)
+
+    def test_g2_display_hal_is_display_hal(self):
+        """G2DisplayHAL must be a DisplayHal subclass."""
+        from openclaw_wearable.hal.even_g2_reference import G2DisplayHAL
+        from openclaw_wearable.hal.base import DisplayHal
+
+        display = G2DisplayHAL(right_address="AA:BB:CC:DD:EE:02")
+        assert isinstance(display, DisplayHal)
+
+    def test_load_profile_even_g2(self):
+        """load_profile('even-g2') returns dict with 'name' key."""
+        from openclaw_wearable.profiles import load_profile
+
+        profile = load_profile("even-g2")
+        assert isinstance(profile, dict)
+        assert "name" in profile
