@@ -253,3 +253,52 @@ class AudioOutputHal(HALBase, ABC):
     @abstractmethod
     def shutdown(self) -> None:
         """Shutdown audio output."""
+
+
+# ---------------------------------------------------------------------------
+# Actuator layer -- bidirectional embodiment (physical actuation commands)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class ActuatorCommand:
+    """Command envelope for actuator dispatch."""
+
+    command_id: str
+    action: str
+    params: dict
+    timestamp_ms: int
+    timeout_ms: int = 5000
+
+
+@dataclass
+class ActuatorResult:
+    """Result of an actuator command execution."""
+
+    command_id: str
+    success: bool
+    elapsed_ms: int
+    error: Optional[str] = None
+
+
+class ActuatorHal(HALBase, ABC):
+    """Actuator abstraction for physical output control."""
+
+    @abstractmethod
+    def initialize(self) -> None:
+        """Initialize actuator system."""
+
+    @abstractmethod
+    def execute(self, command: ActuatorCommand) -> ActuatorResult:
+        """Execute an actuator command."""
+
+    @abstractmethod
+    def stop_all(self) -> None:
+        """Emergency stop all actuators."""
+
+    @abstractmethod
+    def get_capabilities(self) -> list:
+        """Return list of supported action strings."""
+
+    @abstractmethod
+    def shutdown(self) -> None:
+        """Shutdown actuator system."""

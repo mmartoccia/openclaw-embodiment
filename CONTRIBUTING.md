@@ -1,4 +1,4 @@
-# Contributing to OpenClaw Wearable OS
+# Contributing to OpenClaw Embodiment SDK
 
 Thanks for your interest. We are early -- the SDK is in design and the reference hardware is in planning. There is a lot of room to shape where this goes.
 
@@ -16,9 +16,9 @@ The best contributions right now are ideas, questions, and feedback on the archi
 
 **Discussions are the primary venue for now.**
 
-- Questions about the architecture? [Open a discussion.](https://github.com/mmartoccia/openclaw-wearable/discussions)
-- Ideas for the SDK or bridge protocol? [Open a discussion.](https://github.com/mmartoccia/openclaw-wearable/discussions)
-- Hardware you want to see supported? [Open a discussion.](https://github.com/mmartoccia/openclaw-wearable/discussions)
+- Questions about the architecture? [Open a discussion.](https://github.com/mmartoccia/openclaw-embodiment/discussions)
+- Ideas for the SDK or bridge protocol? [Open a discussion.](https://github.com/mmartoccia/openclaw-embodiment/discussions)
+- Hardware you want to see supported? [Open a discussion.](https://github.com/mmartoccia/openclaw-embodiment/discussions)
 - Bug in the docs? Open an issue or a PR.
 
 **Developer waitlist:**

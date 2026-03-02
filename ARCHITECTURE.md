@@ -1,12 +1,12 @@
-# OpenClaw Wearable OS -- Architecture
+# OpenClaw Embodiment SDK -- Architecture
 
-This document covers the high-level architecture of OpenClaw Wearable OS. It is intentionally readable, not a full specification. Implementation details live in the SDK.
+This document covers the high-level architecture of OpenClaw Embodiment SDK. It is intentionally readable, not a full specification. Implementation details live in the SDK.
 
 ---
 
 ## System Overview
 
-OpenClaw Wearable OS has two physical components and one logical layer:
+OpenClaw Embodiment SDK has two physical components and one logical layer:
 
 1. **The Glasses (Edge Node):** A Zephyr-based (or MicroPython) device with a camera, microphone, display, and touch/IMU sensors. Computationally constrained. Responsible only for capture and render.
 

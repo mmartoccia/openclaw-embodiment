@@ -47,6 +47,9 @@ from typing import Any, Callable, Dict, List, Optional
 import numpy as np
 
 from .base import (
+    ActuatorCommand,
+    ActuatorHal,
+    ActuatorResult,
     AudioChunk,
     AudioOutputHal,
     CameraFrame,
@@ -61,7 +64,10 @@ from .base import (
     TransportHal,
     TransportState,
 )
-from ..utils.clock import ms_now
+try:
+    from ..utils.clock import ms_now  # type: ignore[import]
+except ImportError:
+    pass  # utils.clock not available in all environments; use local _ms() instead
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -595,3 +601,134 @@ REACHY_TRIGGER_CONFIG = {
     "refractory_period_ms": 2000,      # 2s between captures (robot pacing)
 }
 """Pass to TriggerConfig(**REACHY_TRIGGER_CONFIG) when constructing WearableSDK."""
+
+
+# ---------------------------------------------------------------------------
+# Actuator HAL -- physical output control for Reachy Mini Lite
+# ---------------------------------------------------------------------------
+
+class ReachyActuatorHAL(ActuatorHal):
+    """Actuator HAL for Reachy Mini Lite.
+
+    Dispatches physical actuation commands via HTTP POST to the Reachy daemon.
+    Requires no reachy SDK -- all calls go through urllib over HTTP.
+
+    Supported actions:
+      - move_head      -- params: pitch, yaw, speed (float)
+      - rotate_body    -- params: degrees, speed (float)
+      - animate_antennas -- params: pattern (str: happy|thinking|alert|idle)
+      - set_expression -- params: emotion (str: neutral|happy|curious|alert)
+      - nod            -- no params (affirmation gesture)
+      - shake_head     -- no params (negation gesture)
+    """
+
+    HAL_VERSION = "1.0.0"
+
+    _CAPABILITIES = [
+        "move_head",
+        "rotate_body",
+        "animate_antennas",
+        "set_expression",
+        "nod",
+        "shake_head",
+    ]
+
+    def __init__(self, host: str = "localhost", port: int = 50055) -> None:
+        self._host = host
+        self._port = port
+        self._timeout_s = 5.0
+        self._base_url = f"http://{host}:{port}/api/actuate"
+
+    # -- HALBase contract ----------------------------------------------------
+
+    def validate(self) -> bool:
+        """Ping the Reachy daemon; return True if reachable."""
+        try:
+            import urllib.request
+            url = f"http://{self._host}:{self._port}/api/health"
+            with urllib.request.urlopen(url, timeout=2.0) as resp:
+                return resp.status == 200
+        except Exception:
+            return False
+
+    def get_device_info(self) -> dict:
+        return {
+            "name": "reachy-mini-actuator",
+            "type": "http_actuator",
+            "host": self._host,
+            "port": self._port,
+            "capabilities": self._CAPABILITIES,
+        }
+
+    # -- ActuatorHal contract ------------------------------------------------
+
+    def initialize(self) -> None:
+        """Initialize actuator system (no-op for HTTP backend)."""
+        pass
+
+    def execute(self, command: ActuatorCommand) -> ActuatorResult:
+        """Dispatch command to Reachy daemon via HTTP POST."""
+        t0 = _ms()
+        if command.action not in self._CAPABILITIES:
+            return ActuatorResult(
+                command_id=command.command_id,
+                success=False,
+                elapsed_ms=_ms() - t0,
+                error=f"Unsupported action: {command.action}",
+            )
+        try:
+            import json
+            import urllib.request
+
+            payload = json.dumps({
+                "command_id": command.command_id,
+                "action": command.action,
+                "params": command.params,
+            }).encode("utf-8")
+
+            req = urllib.request.Request(
+                self._base_url,
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=self._timeout_s) as resp:
+                _ = resp.read()
+            return ActuatorResult(
+                command_id=command.command_id,
+                success=True,
+                elapsed_ms=_ms() - t0,
+            )
+        except Exception as exc:
+            return ActuatorResult(
+                command_id=command.command_id,
+                success=False,
+                elapsed_ms=_ms() - t0,
+                error=str(exc),
+            )
+
+    def stop_all(self) -> None:
+        """Emergency stop -- send stop command to daemon."""
+        try:
+            import json
+            import urllib.request
+
+            payload = json.dumps({"action": "stop_all"}).encode("utf-8")
+            req = urllib.request.Request(
+                self._base_url,
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=2.0) as resp:
+                _ = resp.read()
+        except Exception:
+            pass
+
+    def get_capabilities(self) -> list:
+        """Return list of supported action strings."""
+        return list(self._CAPABILITIES)
+
+    def shutdown(self) -> None:
+        """Shutdown actuator system -- stop all then release."""
+        self.stop_all()

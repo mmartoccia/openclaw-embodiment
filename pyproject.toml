@@ -3,12 +3,12 @@ requires = ["setuptools>=68.2.2", "wheel>=0.42.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "openclaw-wearable"
+name = "openclaw-embodiment"
 version = "0.1.0"
-description = "OpenClaw Wearable OS SDK"
+description = "OpenClaw Embodiment SDK"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.9,<3.13"
+requires-python = ">=3.9"
 authors = [
   { name = "OpenClaw Contributors" }
 ]
@@ -59,7 +59,7 @@ dev = [
 ]
 
 [project.scripts]
-openclaw-wearable = "openclaw_wearable.cli.main:app"
+openclaw-embodiment = "openclaw_wearable.cli.main:app"
 
 [project.entry-points."openclaw_wearable.hal.imu"]
 pi_imu = "openclaw_wearable.hal.pi3_reference:PiIMU"

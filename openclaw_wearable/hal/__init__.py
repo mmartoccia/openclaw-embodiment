@@ -1,6 +1,9 @@
 """HAL exports."""
 
 from .base import (
+    ActuatorCommand,
+    ActuatorHal,
+    ActuatorResult,
     AudioChunk,
     AudioOutputHal,
     CameraFrame,
@@ -16,6 +19,7 @@ from .base import (
     TransportHal,
     TransportState,
 )
+from .reachy_reference import ReachyActuatorHAL
 
 __all__ = [
     "IMUHal",
@@ -32,4 +36,8 @@ __all__ = [
     "DisplayHal",
     "DisplayCard",
     "AudioOutputHal",
+    "ActuatorCommand",
+    "ActuatorHal",
+    "ActuatorResult",
+    "ReachyActuatorHAL",
 ]

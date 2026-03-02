@@ -1,17 +1,19 @@
-# OpenClaw Wearable OS
+# OpenClaw Embodiment SDK
 
 > **The open agent OS for AI wearables.**
 > Persistent memory, multi-agent orchestration, and ambient intelligence for any open wearable device.
 
 ---
 
-## What Is OpenClaw Wearable OS?
+## What Is OpenClaw Embodiment SDK?
 
-OpenClaw Wearable OS is **not a glasses company**. It is an **agent OS layer** -- a persistent intelligence platform that connects to smart glasses and other open wearable hardware as sensor/display nodes.
+OpenClaw Embodiment SDK is **not a glasses company**. It is an **agent OS layer** -- a persistent intelligence platform that connects to smart glasses and other open wearable hardware as sensor/display nodes.
+
+Unlike command-control frameworks (e.g., OM1), the Embodiment SDK is device-to-agent: physical devices capture context and trigger AI responses, rather than receiving commands from the agent.
 
 Every AI glasses product shipping today is a feature, not a platform. They pipe audio or video to a cloud model and render the response. There is no persistent agent layer. No memory. No context between interactions. No autonomy.
 
-OpenClaw already operates as a multi-agent intelligence platform for desktop and server environments. OpenClaw Wearable OS extends that layer to the physical edge, wiring it to the open wearables stack.
+OpenClaw already operates as a multi-agent intelligence platform for desktop and server environments. OpenClaw Embodiment SDK extends that layer to the physical edge, wiring it to the open wearables stack.
 
 **Glasses are dumb nodes. OpenClaw is the intelligence layer.**
 
@@ -65,7 +67,7 @@ The glasses are the first node. The OS is the point.
 
 ## OpenClaw Core
 
-OpenClaw Wearable OS builds on the OpenClaw agent platform.
+OpenClaw Embodiment SDK builds on the OpenClaw agent platform.
 
 - **OpenClaw shared resources:** [github.com/mmartoccia/shared-resources](https://github.com/mmartoccia/shared-resources)
 
@@ -77,7 +79,7 @@ We are in early development. The best way to get involved right now:
 
 - **Developer waitlist** (SDK access, early builds): [openclaw-wearable-os.vercel.app](https://openclaw-wearable-os.vercel.app)
 - **OpenClaw Glasses waitlist** (reference hardware): [openclaw-glasses.vercel.app](https://openclaw-glasses.vercel.app)
-- **Discussions:** Open a [GitHub Discussion](https://github.com/mmartoccia/openclaw-wearable/discussions) to ask questions, share ideas, or propose integrations.
+- **Discussions:** Open a [GitHub Discussion](https://github.com/mmartoccia/openclaw-embodiment/discussions) to ask questions, share ideas, or propose integrations.
 - **Contributing:** Read [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
 
 ---
@@ -95,4 +97,4 @@ We are in early development. The best way to get involved right now:
 
 ---
 
-*OpenClaw Wearable OS -- ambient intelligence for the open edge.*
+*OpenClaw Embodiment SDK -- ambient intelligence for the open edge.*
