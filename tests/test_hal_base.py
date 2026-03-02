@@ -122,3 +122,50 @@ class TestJointState:
             temperature_celsius=37.5,
         )
         assert js.temperature_celsius == 37.5
+
+
+class TestNewProfiles:
+    """Smoke tests for Pi Zero 2W, OAK-D, and Frame AR glasses HAL profiles."""
+
+    def test_oakd_frame_change_imu_init(self):
+        """OakDFrameChangeIMU with None camera_hal is an IMUHal instance."""
+        from openclaw_wearable.hal.oakd_reference import OakDFrameChangeIMU
+        from openclaw_wearable.hal.base import IMUHal
+
+        imu = OakDFrameChangeIMU(camera_hal=None, change_threshold=0.05)
+        assert isinstance(imu, IMUHal)
+
+    def test_frame_transport_hal_init(self):
+        """FrameTransportHAL with None frame instance is a TransportHal instance."""
+        from openclaw_wearable.hal.frame_reference import FrameTransportHAL
+        from openclaw_wearable.hal.base import TransportHal
+
+        transport = FrameTransportHAL(frame_instance=None)
+        assert isinstance(transport, TransportHal)
+
+    def test_load_profile_pi_zero2w(self):
+        """load_profile('pi-zero2w') returns dict with 'name' key."""
+        from openclaw_wearable.profiles import load_profile
+
+        profile = load_profile("pi-zero2w")
+        assert isinstance(profile, dict)
+        assert "name" in profile
+        assert profile["name"] == "pi-zero2w"
+
+    def test_load_profile_oakd(self):
+        """load_profile('luxonis-oakd') returns dict with 'name' key."""
+        from openclaw_wearable.profiles import load_profile
+
+        profile = load_profile("luxonis-oakd")
+        assert isinstance(profile, dict)
+        assert "name" in profile
+        assert profile["name"] == "luxonis-oakd"
+
+    def test_load_profile_frame(self):
+        """load_profile('frame-glasses') returns dict with 'name' key."""
+        from openclaw_wearable.profiles import load_profile
+
+        profile = load_profile("frame-glasses")
+        assert isinstance(profile, dict)
+        assert "name" in profile
+        assert profile["name"] == "frame-glasses"

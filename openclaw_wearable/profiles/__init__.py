@@ -29,7 +29,8 @@ def load_profile(name: str) -> Dict[str, Any]:
 
     if not os.path.exists(path):
         raise ValueError(
-            f"Unknown profile: {name}. Available: reachy-mini, pi5-picam"
+            f"Unknown profile: {name}. Available: reachy-mini, pi5-picam, "
+            "pi-zero2w, luxonis-oakd, frame-glasses"
         )
 
     if yaml is None:

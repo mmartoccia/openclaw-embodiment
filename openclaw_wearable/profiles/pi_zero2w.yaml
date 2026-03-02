@@ -1,0 +1,11 @@
+# OpenClaw Embodiment SDK -- Raspberry Pi Zero 2W device profile
+name: pi-zero2w
+display_name: "Raspberry Pi Zero 2W + PiCamera Module 3"
+transport: ble
+trigger_profile: GLASSES_TRIGGER_PROFILE
+capabilities:
+  - camera
+  - microphone
+  - transport
+  - motion_tracking
+notes: "1GHz quad-core, 512MB RAM. Lightweight wearable/embedded profile. Same HAL as Pi5 but with performance constraints -- use lower resolution (320x240) and 10fps for camera."

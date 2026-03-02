@@ -24,6 +24,21 @@ from .base import (
     TransportState,
 )
 from .reachy_reference import ReachyActuatorHAL, ReachyMotionTracker
+from .oakd_reference import OakDCameraHAL, OakDFrameChangeIMU, OakDTransportHAL, OAKD_TRIGGER_PROFILE
+from .frame_reference import (
+    FrameCameraHAL,
+    FrameIMUHAL,
+    FrameMicrophoneHAL,
+    FrameDisplayHAL,
+    FrameTransportHAL,
+    FRAME_TRIGGER_PROFILE,
+)
+from .pi_zero2w_reference import (
+    PiZero2WCameraHAL,
+    PiZero2WMicrophoneHAL,
+    PiZero2WTransportHAL,
+    PIZERO2W_TRIGGER_PROFILE,
+)
 
 __all__ = [
     "IMUHal",
@@ -49,4 +64,21 @@ __all__ = [
     "PowerHal",
     "ReachyActuatorHAL",
     "ReachyMotionTracker",
+    # OAK-D
+    "OakDCameraHAL",
+    "OakDFrameChangeIMU",
+    "OakDTransportHAL",
+    "OAKD_TRIGGER_PROFILE",
+    # Frame AR Glasses
+    "FrameCameraHAL",
+    "FrameIMUHAL",
+    "FrameMicrophoneHAL",
+    "FrameDisplayHAL",
+    "FrameTransportHAL",
+    "FRAME_TRIGGER_PROFILE",
+    # Pi Zero 2W
+    "PiZero2WCameraHAL",
+    "PiZero2WMicrophoneHAL",
+    "PiZero2WTransportHAL",
+    "PIZERO2W_TRIGGER_PROFILE",
 ]

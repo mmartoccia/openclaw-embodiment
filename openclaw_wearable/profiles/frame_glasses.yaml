@@ -1,0 +1,12 @@
+# OpenClaw Embodiment SDK -- Brilliant Labs Frame AR Glasses device profile
+name: frame-glasses
+display_name: "Brilliant Labs Frame AR Glasses"
+transport: ble
+trigger_profile: GLASSES_TRIGGER_PROFILE
+capabilities:
+  - camera
+  - microphone
+  - display
+  - transport
+  - motion_tracking
+notes: "Alif B1 MCU, 640x400 OLED display, 1080p camera, BLE to host. Requires: pip install frame-sdk. The original OpenClaw Embodiment SDK target form factor."

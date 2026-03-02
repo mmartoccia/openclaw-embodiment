@@ -1,0 +1,11 @@
+# OpenClaw Embodiment SDK -- Luxonis OAK-D device profile
+name: luxonis-oakd
+display_name: "Luxonis OAK-D (OpenCV AI Kit with Depth)"
+transport: wifi
+trigger_profile: GLASSES_TRIGGER_PROFILE
+capabilities:
+  - camera
+  - depth
+  - transport
+  - motion_tracking
+notes: "No built-in IMU on base OAK-D (OAK-D Pro W has IMU). Uses frame-change detection as motion proxy. Requires: pip install depthai. USB-C to host Mac/Linux. Onboard MyriadX VPU for neural inference."
