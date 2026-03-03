@@ -6,6 +6,13 @@
 
 A major OpenClaw beta shipped today with three capabilities that directly upgrade this SDK's architecture. These are high-priority additions to v1.1 and v1.2.
 
+### 4. On-Device Inference — Qwen 3.5 via MLX (2026-03-03)
+**Impact:** HIGH — decouples SDK from cloud gateway dependency.
+
+Qwen 3.5 2B (6-bit, MLX) runs on-device on Apple Silicon with visual understanding and toggleable reasoning. Beats models 4x its size. Enables `LocalMLXTransport` as a first-class HAL: no gateway, no network, works offline. Validated on iPhone 17 Pro; target for .152 MacBook Pro and Pi 5 aarch64.
+
+**Target:** v1.2 — `LocalMLXTransport` + hybrid routing config.
+
 ### 1. Bidirectional Agent Loop — `onAgentEvent` + `onSessionTranscriptUpdate`
 **Impact:** HIGH — closes the missing half of the device-to-agent architecture.
 
@@ -112,6 +119,17 @@ Current trigger architecture polls at 25Hz but the agent only wakes at the next 
 - Camera frames and audio clips attachable directly to `sessions_spawn` turns
 - Bypasses context query API for rich media — agent gets raw frame, not just embedding
 - New `TransportHal` implementation: `AttachmentTransport`
+
+### LocalMLXTransport — On-Device Inference
+- New `TransportHal` implementation: `LocalMLXTransport`
+- Routes context to a local MLX model (Qwen 3.5 2B 6-bit or equivalent) instead of the OpenClaw gateway
+- Enables fully offline operation, sub-100ms inference latency, zero cloud dependency
+- **Hybrid routing:** fast local model for immediate responses, escalate to OpenClaw gateway for complex multi-step reasoning
+- Config: `transport: local_mlx`, `model: Qwen/Qwen3.5-2B-Instruct-6bit`, `fallback: http`
+- First validated on: MacBook Pro M-series (.152) via mlx-lm
+- Target device profiles: Pi 5 (via mlx on aarch64), iOS companion (iPhone 17 Pro via mlx-swift)
+- Enables **iOS companion profile**: iPhone running MLX + Qwen 3.5 as edge compute layer for glasses (G2, Brilliant Labs Frame). Phone = brain, glasses = sensor/display surface.
+- Reduces Phantom confabulation API cost: local passes for initial domain exploration, cloud for synthesis
 
 ---
 
