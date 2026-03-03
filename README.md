@@ -1,7 +1,7 @@
 # OpenClaw Embodiment SDK
 
-> **Context capture for AI-native hardware.**
-> A pure-Python HAL layer that connects physical devices to the OpenClaw agent runtime -- robots, wearables, and edge compute in one SDK.
+> **Context capture for physical AI.**
+> A pure-Python hardware abstraction layer (HAL) that connects physical devices -- including Reachy Mini -- to the OpenClaw agent runtime. Robots, wearables, and edge compute in one open source SDK.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-Gate%203%20complete-green.svg)](ROADMAP.md)
