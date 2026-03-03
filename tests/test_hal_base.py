@@ -200,3 +200,196 @@ class TestG2Profile:
         profile = load_profile("even-g2")
         assert isinstance(profile, dict)
         assert "name" in profile
+
+
+class TestReachy2Profile:
+    """Tests for Reachy 2 HAL and profile."""
+
+    def test_reachy2_profile_loads(self):
+        """load_profile('reachy2') returns valid config dict."""
+        from openclaw_wearable.profiles import load_profile
+
+        profile = load_profile("reachy2")
+        assert isinstance(profile, dict)
+        assert profile.get("name") == "reachy2"
+        assert profile.get("display_name") == "Reachy 2"
+        assert profile.get("manufacturer") == "Pollen Robotics"
+        assert profile.get("imu_available") is True
+        assert profile.get("stereo_cameras") is True
+        assert profile.get("doa_available") is True
+
+    def test_reachy2_hal_classes_importable(self):
+        """Reachy 2 HAL classes can be imported and instantiated with a mock reachy object."""
+        from openclaw_wearable.hal.reachy2_reference import (
+            Reachy2MotionTracker,
+            Reachy2CameraHAL,
+            Reachy2MicrophoneHAL,
+            Reachy2AudioOutputHAL,
+            Reachy2DisplayHAL,
+            Reachy2TransportHAL,
+            Reachy2ActuatorHAL,
+        )
+        from openclaw_wearable.hal.base import (
+            IMUHal, CameraHal, MicrophoneHal, AudioOutputHal,
+            DisplayHal, TransportHal, ActuatorHal,
+        )
+
+        # Use a simple mock object -- real reachy2-sdk not required for instantiation
+        class MockReachy:
+            head = None
+            cameras = None
+            audio = None
+            r_arm = None
+            l_arm = None
+            mobile_base = None
+
+        mock = MockReachy()
+
+        imu = Reachy2MotionTracker(mock)
+        assert isinstance(imu, IMUHal)
+
+        cam = Reachy2CameraHAL(mock, camera_side="left")
+        assert isinstance(cam, CameraHal)
+
+        mic = Reachy2MicrophoneHAL(mock)
+        assert isinstance(mic, MicrophoneHal)
+
+        audio = Reachy2AudioOutputHAL(mock)
+        assert isinstance(audio, AudioOutputHal)
+
+        display = Reachy2DisplayHAL(mock)
+        assert isinstance(display, DisplayHal)
+
+        transport = Reachy2TransportHAL(host="reachy.local", port=50051)
+        assert isinstance(transport, TransportHal)
+
+        actuator = Reachy2ActuatorHAL(mock)
+        assert isinstance(actuator, ActuatorHal)
+
+    def test_reachy2_actuator_ids(self):
+        """REACHY2_ALL_JOINTS contains all expected joint IDs."""
+        from openclaw_wearable.hal.reachy2_reference import (
+            REACHY2_ALL_JOINTS,
+            REACHY2_HEAD_JOINTS,
+            REACHY2_R_ARM_JOINTS,
+            REACHY2_L_ARM_JOINTS,
+            REACHY2_MOBILE_BASE_JOINTS,
+        )
+
+        # Head joints
+        assert "head.neck.pan" in REACHY2_HEAD_JOINTS
+        assert "head.neck.tilt" in REACHY2_HEAD_JOINTS
+        assert "head.neck.roll" in REACHY2_HEAD_JOINTS
+        assert len(REACHY2_HEAD_JOINTS) == 3
+
+        # Right arm joints (7 DOF + gripper = 8)
+        assert "r_arm.shoulder.pitch" in REACHY2_R_ARM_JOINTS
+        assert "r_arm.shoulder.roll" in REACHY2_R_ARM_JOINTS
+        assert "r_arm.elbow.yaw" in REACHY2_R_ARM_JOINTS
+        assert "r_arm.elbow.pitch" in REACHY2_R_ARM_JOINTS
+        assert "r_arm.wrist.roll" in REACHY2_R_ARM_JOINTS
+        assert "r_arm.wrist.pitch" in REACHY2_R_ARM_JOINTS
+        assert "r_arm.wrist.yaw" in REACHY2_R_ARM_JOINTS
+        assert "r_arm.gripper" in REACHY2_R_ARM_JOINTS
+        assert len(REACHY2_R_ARM_JOINTS) == 8
+
+        # Left arm mirrors right arm
+        assert "l_arm.shoulder.pitch" in REACHY2_L_ARM_JOINTS
+        assert "l_arm.gripper" in REACHY2_L_ARM_JOINTS
+        assert len(REACHY2_L_ARM_JOINTS) == 8
+
+        # Mobile base
+        assert "mobile_base.x" in REACHY2_MOBILE_BASE_JOINTS
+        assert "mobile_base.y" in REACHY2_MOBILE_BASE_JOINTS
+        assert "mobile_base.theta" in REACHY2_MOBILE_BASE_JOINTS
+
+        # All joints combined
+        assert len(REACHY2_ALL_JOINTS) == 3 + 8 + 8 + 3  # 22 total
+
+    def test_reachy2_actuator_capabilities(self):
+        """Reachy2ActuatorHAL.get_capabilities() returns expected action strings."""
+        from openclaw_wearable.hal.reachy2_reference import Reachy2ActuatorHAL
+
+        class MockReachy:
+            head = None
+
+        actuator = Reachy2ActuatorHAL(MockReachy(), has_mobile_base=False)
+        caps = actuator.get_capabilities()
+        assert "move_head" in caps
+        assert "move_r_arm" in caps
+        assert "move_l_arm" in caps
+        assert "move_gripper" in caps
+        assert "stop_all" in caps
+        # mobile_base_move excluded when has_mobile_base=False
+        assert "mobile_base_move" not in caps
+
+        # With mobile base
+        actuator_with_base = Reachy2ActuatorHAL(MockReachy(), has_mobile_base=True)
+        caps_with_base = actuator_with_base.get_capabilities()
+        assert "mobile_base_move" in caps_with_base
+
+    def test_reachy2_transport_defaults(self):
+        """Reachy2TransportHAL defaults to reachy.local:50051."""
+        from openclaw_wearable.hal.reachy2_reference import Reachy2TransportHAL
+        from openclaw_wearable.hal.base import TransportState
+
+        transport = Reachy2TransportHAL()
+        assert transport._host == "reachy.local"
+        assert transport._port == 50051
+        assert transport.get_state() == TransportState.DISCONNECTED
+        assert not transport.is_connected()
+        assert transport.get_expected_latency_ms() == 10
+
+        transport.connect()
+        assert transport.is_connected()
+        assert transport.get_state() == TransportState.CONNECTED
+
+    def test_reachy2_camera_hal_sides(self):
+        """Reachy2CameraHAL accepts left/right/both camera_side."""
+        from openclaw_wearable.hal.reachy2_reference import Reachy2CameraHAL
+
+        class MockReachy:
+            cameras = None
+
+        for side in ("left", "right", "both"):
+            cam = Reachy2CameraHAL(MockReachy(), camera_side=side)
+            assert cam._camera_side == side
+            w, h = cam.get_resolution()
+            expected_w = 640 * 2 if side == "both" else 640
+            # Resolution is set to 640x480 by default regardless of side
+            assert w == 640  # get_resolution returns configured resolution, not composite
+
+    def test_reachy2_expression_constants(self):
+        """Reachy2Expression has all required expression constants."""
+        from openclaw_wearable.hal.reachy2_reference import Reachy2Expression
+
+        assert Reachy2Expression.NEUTRAL == "neutral"
+        assert Reachy2Expression.HAPPY == "happy"
+        assert Reachy2Expression.SAD == "sad"
+        assert Reachy2Expression.THINKING == "thinking"
+        assert Reachy2Expression.ALERT == "alert"
+        assert Reachy2Expression.CUSTOM == "custom"
+        assert len(Reachy2Expression.ALL) == 6
+
+    def test_reachy_mini_wireless_profile_loads(self):
+        """load_profile('reachy-mini-wireless') returns valid config dict."""
+        from openclaw_wearable.profiles import load_profile
+
+        profile = load_profile("reachy-mini-wireless")
+        assert isinstance(profile, dict)
+        assert profile.get("name") == "reachy-mini-wireless"
+        assert profile.get("display_name") == "Reachy Mini Wireless"
+        assert profile.get("imu_available") is True
+        assert profile.get("price_usd") == 449
+        # WiFi transport -- no USB cable
+        assert "WiFi" in profile.get("transport", "")
+        # Uses same HAL as Reachy Mini -- ReachyMotionTracker
+        hal_classes = profile.get("hal_classes", {})
+        assert hal_classes.get("imu") == "ReachyMotionTracker"
+
+    def test_reachy_mini_wireless_hal_module(self):
+        """Reachy Mini Wireless profile points to reachy_reference HAL module."""
+        from openclaw_wearable.profiles import load_profile
+
+        profile = load_profile("reachy-mini-wireless")
+        assert profile.get("hal_module") == "openclaw_wearable.hal.reachy_reference"

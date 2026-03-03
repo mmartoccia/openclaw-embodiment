@@ -1,0 +1,35 @@
+# OpenClaw Embodiment SDK -- Reachy 2 full humanoid device profile
+name: reachy2
+profile_id: reachy2
+display_name: "Reachy 2"
+description: "Reachy 2 full humanoid robot -- 7-DOF arms x2, stereo cameras, 3-DOF neck, optional mobile base"
+manufacturer: "Pollen Robotics"
+category: robot
+price_usd: null  # enterprise pricing, contact Pollen Robotics
+compute: "External compute (connect via network)"
+transport: "HTTP/gRPC (reachy2-sdk)"
+imu_available: true
+stereo_cameras: true
+doa_available: true
+mobile_base_optional: true
+hal_classes:
+  imu: Reachy2MotionTracker
+  camera: Reachy2CameraHAL
+  microphone: Reachy2MicrophoneHAL
+  audio_output: Reachy2AudioOutputHAL
+  display: Reachy2DisplayHAL
+  transport: Reachy2TransportHAL
+  actuator: Reachy2ActuatorHAL
+hal_module: openclaw_wearable.hal.reachy2_reference
+capabilities:
+  - camera
+  - stereo_camera
+  - microphone
+  - audio_output
+  - display
+  - actuator
+  - motion_tracking
+  - doa
+  - imu
+  - mobile_base
+notes: "Hardware validation pending. HAL written against reachy2-sdk API spec. Mobile base capabilities available if optional wheeled base is installed."

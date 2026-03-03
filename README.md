@@ -60,9 +60,11 @@ No ROS dependency. No proprietary lock-in. Six device profiles ship out of the b
 | Device | Type | Transport | Status | Profile Name |
 |--------|------|-----------|--------|--------------|
 | Reachy Mini Lite (Pollen Robotics) | Robot | HTTP | Tested on CM5 | `reachy-mini` |
-| Raspberry Pi 5 + PiCamera Module 3 | Edge compute | BLE | Implemented | `pi5-picam` |
-| Raspberry Pi Zero 2W + PiCamera | Edge compute (constrained) | BLE | Implemented | `pi-zero2w` |
-| Luxonis OAK-D | AI camera | USB + HTTP | Implemented | `luxonis-oakd` |
+| Reachy Mini Wireless (Pollen Robotics) | Robot (built-in IMU + RPi 4) | HTTP | In Progress | `reachy-mini-wireless` |
+| Reachy 2 (Pollen Robotics) | Full humanoid (7-DOF arms × 2, stereo cameras) | HTTP | In Progress | `reachy2` |
+| Raspberry Pi 5 + PiCamera Module 3 | Edge compute | BLE | Implemented (spec-based, no hw validation) | `pi5-picam` |
+| Raspberry Pi Zero 2W + PiCamera | Edge compute (constrained) | BLE | Implemented (spec-based, no hw validation) | `pi-zero2w` |
+| Luxonis OAK-D | AI camera | USB + HTTP | Implemented (spec-based, no hw validation) | `luxonis-oakd` |
 | Brilliant Labs Frame | AR glasses | BLE | Implemented (hw validation needed) | `frame-glasses` |
 | Even Realities G2 | Smart glasses | BLE dual-arm | Implemented (hw validation needed) | `even-g2` |
 

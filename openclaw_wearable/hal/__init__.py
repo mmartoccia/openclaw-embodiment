@@ -46,6 +46,23 @@ from .even_g2_reference import (
     G2TransportHAL,
     G2_TRIGGER_PROFILE,
 )
+from .reachy2_reference import (
+    Reachy2MotionTracker,
+    Reachy2CameraHAL,
+    Reachy2MicrophoneHAL,
+    Reachy2AudioOutputHAL,
+    Reachy2DisplayHAL,
+    Reachy2TransportHAL,
+    Reachy2ActuatorHAL,
+    Reachy2Expression,
+    REACHY2_TRIGGER_CONFIG,
+    REACHY2_ALL_JOINTS,
+    REACHY2_HEAD_JOINTS,
+    REACHY2_R_ARM_JOINTS,
+    REACHY2_L_ARM_JOINTS,
+    REACHY2_MOBILE_BASE_JOINTS,
+    REACHY2_ACTUATOR_CAPABILITIES,
+)
 
 __all__ = [
     "IMUHal",
@@ -94,4 +111,20 @@ __all__ = [
     "G2DisplayHAL",
     "G2TransportHAL",
     "G2_TRIGGER_PROFILE",
+    # Reachy 2 Full Humanoid
+    "Reachy2MotionTracker",
+    "Reachy2CameraHAL",
+    "Reachy2MicrophoneHAL",
+    "Reachy2AudioOutputHAL",
+    "Reachy2DisplayHAL",
+    "Reachy2TransportHAL",
+    "Reachy2ActuatorHAL",
+    "Reachy2Expression",
+    "REACHY2_TRIGGER_CONFIG",
+    "REACHY2_ALL_JOINTS",
+    "REACHY2_HEAD_JOINTS",
+    "REACHY2_R_ARM_JOINTS",
+    "REACHY2_L_ARM_JOINTS",
+    "REACHY2_MOBILE_BASE_JOINTS",
+    "REACHY2_ACTUATOR_CAPABILITIES",
 ]

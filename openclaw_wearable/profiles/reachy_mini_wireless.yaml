@@ -1,0 +1,31 @@
+# OpenClaw Embodiment SDK -- Reachy Mini Wireless device profile
+name: reachy-mini-wireless
+profile_id: reachy-mini-wireless
+display_name: "Reachy Mini Wireless"
+description: "Reachy Mini Wireless -- built-in IMU, standalone Raspberry Pi 4, WiFi transport"
+manufacturer: "Pollen Robotics"
+category: robot
+price_usd: 449
+compute: "Standalone Raspberry Pi 4 (built-in)"
+transport: "HTTP over WiFi (no USB cable required)"
+imu_available: true
+hal_classes:
+  imu: ReachyMotionTracker
+  camera: ReachyCameraHAL
+  microphone: ReachyMicrophoneHAL
+  audio_output: ReachyAudioOutputHAL
+  display: ReachyDisplayHAL
+  transport: ReachyTransportHAL
+  actuator: ReachyActuatorHAL
+hal_module: openclaw_wearable.hal.reachy_reference
+trigger_profile: REACHY_TRIGGER_CONFIG
+capabilities:
+  - camera
+  - microphone
+  - audio_output
+  - display
+  - actuator
+  - motion_tracking
+  - doa
+  - imu
+notes: "ReachyMotionTracker uses real IMU data on this model, not encoder proxy. WiFi transport -- no USB cable required. Connect to Reachy's built-in Pi 4 over local network."
