@@ -16,9 +16,9 @@ Usage:
 
 from reachy_mini import ReachyMini
 
-from openclaw_wearable.core.pipeline import HALRegistry, WearableSDK
-from openclaw_wearable.core.trigger import TriggerConfig
-from openclaw_wearable.hal.reachy_reference import (
+from openclaw_embodiment.core.pipeline import HALRegistry, EmbodimentSDK
+from openclaw_embodiment.core.trigger import TriggerConfig
+from openclaw_embodiment.hal.reachy_reference import (
     REACHY_TRIGGER_CONFIG,
     ReachyAudioOutputHAL,
     ReachyCameraHAL,
@@ -42,7 +42,7 @@ def main() -> None:
         registry.register_transport(ReachyTransportHAL(), priority=0)
 
         trigger_config = TriggerConfig(**REACHY_TRIGGER_CONFIG)
-        sdk = WearableSDK(registry, trigger_config=trigger_config)
+        sdk = EmbodimentSDK(registry, trigger_config=trigger_config)
 
         sdk.on_trigger(lambda e: print(f"[TRIGGER] {e.event_id} confidence={e.trigger_confidence:.2f}"))
         sdk.on_response(lambda r: print(f"[RESPONSE] {r.title}: {r.body}"))

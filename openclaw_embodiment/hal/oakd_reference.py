@@ -17,7 +17,7 @@ Install requirements:
   pip install depthai numpy opencv-python
 
 Usage:
-  from openclaw_wearable.hal.oakd_reference import (
+  from openclaw_embodiment.hal.oakd_reference import (
       OakDCameraHAL,
       OakDFrameChangeIMU,
       OakDTransportHAL,

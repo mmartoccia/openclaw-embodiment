@@ -1,6 +1,6 @@
 import pytest
 
-from openclaw_wearable.hal.base import (
+from openclaw_embodiment.hal.base import (
     ActuatorCommand,
     ActuatorHal,
     ActuatorResult,
@@ -17,8 +17,8 @@ from openclaw_wearable.hal.base import (
     PowerSource,
     TransportHal,
 )
-from openclaw_wearable.hal.reachy_reference import ReachyActuatorHAL
-from openclaw_wearable.hal.simulator import SimulatedAudioOutput, SimulatedCamera, SimulatedClassifier, SimulatedDisplay, SimulatedIMU, SimulatedMicrophone, SimulatedTransport
+from openclaw_embodiment.hal.reachy_reference import ReachyActuatorHAL
+from openclaw_embodiment.hal.simulator import SimulatedAudioOutput, SimulatedCamera, SimulatedClassifier, SimulatedDisplay, SimulatedIMU, SimulatedMicrophone, SimulatedTransport
 
 
 def test_hal_contract_instances():
@@ -129,23 +129,23 @@ class TestNewProfiles:
 
     def test_oakd_frame_change_imu_init(self):
         """OakDFrameChangeIMU with None camera_hal is an IMUHal instance."""
-        from openclaw_wearable.hal.oakd_reference import OakDFrameChangeIMU
-        from openclaw_wearable.hal.base import IMUHal
+        from openclaw_embodiment.hal.oakd_reference import OakDFrameChangeIMU
+        from openclaw_embodiment.hal.base import IMUHal
 
         imu = OakDFrameChangeIMU(camera_hal=None, change_threshold=0.05)
         assert isinstance(imu, IMUHal)
 
     def test_frame_transport_hal_init(self):
         """FrameTransportHAL with None frame instance is a TransportHal instance."""
-        from openclaw_wearable.hal.frame_reference import FrameTransportHAL
-        from openclaw_wearable.hal.base import TransportHal
+        from openclaw_embodiment.hal.frame_reference import FrameTransportHAL
+        from openclaw_embodiment.hal.base import TransportHal
 
         transport = FrameTransportHAL(frame_instance=None)
         assert isinstance(transport, TransportHal)
 
     def test_load_profile_pi_zero2w(self):
         """load_profile('pi-zero2w') returns dict with 'name' key."""
-        from openclaw_wearable.profiles import load_profile
+        from openclaw_embodiment.profiles import load_profile
 
         profile = load_profile("pi-zero2w")
         assert isinstance(profile, dict)
@@ -154,7 +154,7 @@ class TestNewProfiles:
 
     def test_load_profile_oakd(self):
         """load_profile('luxonis-oakd') returns dict with 'name' key."""
-        from openclaw_wearable.profiles import load_profile
+        from openclaw_embodiment.profiles import load_profile
 
         profile = load_profile("luxonis-oakd")
         assert isinstance(profile, dict)
@@ -163,7 +163,7 @@ class TestNewProfiles:
 
     def test_load_profile_frame(self):
         """load_profile('frame-glasses') returns dict with 'name' key."""
-        from openclaw_wearable.profiles import load_profile
+        from openclaw_embodiment.profiles import load_profile
 
         profile = load_profile("frame-glasses")
         assert isinstance(profile, dict)
@@ -176,8 +176,8 @@ class TestG2Profile:
 
     def test_g2_rssi_motion_proxy_is_imu_hal(self):
         """G2RSSIMotionProxy must be an IMUHal subclass."""
-        from openclaw_wearable.hal.even_g2_reference import G2RSSIMotionProxy
-        from openclaw_wearable.hal.base import IMUHal
+        from openclaw_embodiment.hal.even_g2_reference import G2RSSIMotionProxy
+        from openclaw_embodiment.hal.base import IMUHal
 
         proxy = G2RSSIMotionProxy(
             left_address="AA:BB:CC:DD:EE:01",
@@ -187,15 +187,15 @@ class TestG2Profile:
 
     def test_g2_display_hal_is_display_hal(self):
         """G2DisplayHAL must be a DisplayHal subclass."""
-        from openclaw_wearable.hal.even_g2_reference import G2DisplayHAL
-        from openclaw_wearable.hal.base import DisplayHal
+        from openclaw_embodiment.hal.even_g2_reference import G2DisplayHAL
+        from openclaw_embodiment.hal.base import DisplayHal
 
         display = G2DisplayHAL(right_address="AA:BB:CC:DD:EE:02")
         assert isinstance(display, DisplayHal)
 
     def test_load_profile_even_g2(self):
         """load_profile('even-g2') returns dict with 'name' key."""
-        from openclaw_wearable.profiles import load_profile
+        from openclaw_embodiment.profiles import load_profile
 
         profile = load_profile("even-g2")
         assert isinstance(profile, dict)
@@ -207,7 +207,7 @@ class TestReachy2Profile:
 
     def test_reachy2_profile_loads(self):
         """load_profile('reachy2') returns valid config dict."""
-        from openclaw_wearable.profiles import load_profile
+        from openclaw_embodiment.profiles import load_profile
 
         profile = load_profile("reachy2")
         assert isinstance(profile, dict)
@@ -220,7 +220,7 @@ class TestReachy2Profile:
 
     def test_reachy2_hal_classes_importable(self):
         """Reachy 2 HAL classes can be imported and instantiated with a mock reachy object."""
-        from openclaw_wearable.hal.reachy2_reference import (
+        from openclaw_embodiment.hal.reachy2_reference import (
             Reachy2MotionTracker,
             Reachy2CameraHAL,
             Reachy2MicrophoneHAL,
@@ -229,7 +229,7 @@ class TestReachy2Profile:
             Reachy2TransportHAL,
             Reachy2ActuatorHAL,
         )
-        from openclaw_wearable.hal.base import (
+        from openclaw_embodiment.hal.base import (
             IMUHal, CameraHal, MicrophoneHal, AudioOutputHal,
             DisplayHal, TransportHal, ActuatorHal,
         )
@@ -268,7 +268,7 @@ class TestReachy2Profile:
 
     def test_reachy2_actuator_ids(self):
         """REACHY2_ALL_JOINTS contains all expected joint IDs."""
-        from openclaw_wearable.hal.reachy2_reference import (
+        from openclaw_embodiment.hal.reachy2_reference import (
             REACHY2_ALL_JOINTS,
             REACHY2_HEAD_JOINTS,
             REACHY2_R_ARM_JOINTS,
@@ -308,7 +308,7 @@ class TestReachy2Profile:
 
     def test_reachy2_actuator_capabilities(self):
         """Reachy2ActuatorHAL.get_capabilities() returns expected action strings."""
-        from openclaw_wearable.hal.reachy2_reference import Reachy2ActuatorHAL
+        from openclaw_embodiment.hal.reachy2_reference import Reachy2ActuatorHAL
 
         class MockReachy:
             head = None
@@ -330,8 +330,8 @@ class TestReachy2Profile:
 
     def test_reachy2_transport_defaults(self):
         """Reachy2TransportHAL defaults to reachy.local:50051."""
-        from openclaw_wearable.hal.reachy2_reference import Reachy2TransportHAL
-        from openclaw_wearable.hal.base import TransportState
+        from openclaw_embodiment.hal.reachy2_reference import Reachy2TransportHAL
+        from openclaw_embodiment.hal.base import TransportState
 
         transport = Reachy2TransportHAL()
         assert transport._host == "reachy.local"
@@ -346,7 +346,7 @@ class TestReachy2Profile:
 
     def test_reachy2_camera_hal_sides(self):
         """Reachy2CameraHAL accepts left/right/both camera_side."""
-        from openclaw_wearable.hal.reachy2_reference import Reachy2CameraHAL
+        from openclaw_embodiment.hal.reachy2_reference import Reachy2CameraHAL
 
         class MockReachy:
             cameras = None
@@ -361,7 +361,7 @@ class TestReachy2Profile:
 
     def test_reachy2_expression_constants(self):
         """Reachy2Expression has all required expression constants."""
-        from openclaw_wearable.hal.reachy2_reference import Reachy2Expression
+        from openclaw_embodiment.hal.reachy2_reference import Reachy2Expression
 
         assert Reachy2Expression.NEUTRAL == "neutral"
         assert Reachy2Expression.HAPPY == "happy"
@@ -373,7 +373,7 @@ class TestReachy2Profile:
 
     def test_reachy_mini_wireless_profile_loads(self):
         """load_profile('reachy-mini-wireless') returns valid config dict."""
-        from openclaw_wearable.profiles import load_profile
+        from openclaw_embodiment.profiles import load_profile
 
         profile = load_profile("reachy-mini-wireless")
         assert isinstance(profile, dict)
@@ -389,7 +389,7 @@ class TestReachy2Profile:
 
     def test_reachy_mini_wireless_hal_module(self):
         """Reachy Mini Wireless profile points to reachy_reference HAL module."""
-        from openclaw_wearable.profiles import load_profile
+        from openclaw_embodiment.profiles import load_profile
 
         profile = load_profile("reachy-mini-wireless")
-        assert profile.get("hal_module") == "openclaw_wearable.hal.reachy_reference"
+        assert profile.get("hal_module") == "openclaw_embodiment.hal.reachy_reference"

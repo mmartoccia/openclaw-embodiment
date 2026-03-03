@@ -17,7 +17,7 @@ hal_classes:
   display: ReachyDisplayHAL
   transport: ReachyTransportHAL
   actuator: ReachyActuatorHAL
-hal_module: openclaw_wearable.hal.reachy_reference
+hal_module: openclaw_embodiment.hal.reachy_reference
 trigger_profile: REACHY_TRIGGER_CONFIG
 capabilities:
   - camera

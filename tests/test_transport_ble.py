@@ -1,6 +1,6 @@
 import random
 
-from openclaw_wearable.transport.ble import Fragmenter
+from openclaw_embodiment.transport.ble import Fragmenter
 
 
 def test_fragment_roundtrip_ordered():

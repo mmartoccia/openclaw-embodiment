@@ -16,7 +16,7 @@ import os
 # Allow running from project root without install
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
-from openclaw_wearable.hal.simulator import (
+from openclaw_embodiment.hal.simulator import (
     SimulatedIMU,
     SimulatedCamera,
     SimulatedMicrophone,

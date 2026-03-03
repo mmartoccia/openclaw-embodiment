@@ -2,8 +2,8 @@ from unittest.mock import patch
 
 import httpx
 
-from openclaw_wearable.context.client import ContextClient
-from openclaw_wearable.context.models import ContextPayload
+from openclaw_embodiment.context.client import ContextClient
+from openclaw_embodiment.context.models import ContextPayload
 
 
 def test_context_client_success():

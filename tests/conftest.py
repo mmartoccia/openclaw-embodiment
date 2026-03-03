@@ -2,9 +2,9 @@
 
 import pytest
 
-from openclaw_wearable.core.pipeline import HALRegistry, WearableSDK
-from openclaw_wearable.core.trigger import TriggerConfig
-from openclaw_wearable.hal.simulator import SimulatedCamera, SimulatedClassifier, SimulatedDisplay, SimulatedIMU, SimulatedMicrophone, SimulatedTransport
+from openclaw_embodiment.core.pipeline import HALRegistry, WearableSDK
+from openclaw_embodiment.core.trigger import TriggerConfig
+from openclaw_embodiment.hal.simulator import SimulatedCamera, SimulatedClassifier, SimulatedDisplay, SimulatedIMU, SimulatedMicrophone, SimulatedTransport
 
 
 @pytest.fixture

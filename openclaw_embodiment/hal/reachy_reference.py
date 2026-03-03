@@ -18,7 +18,7 @@ Install requirements:
 
 Usage:
   from reachy_mini import ReachyMini
-  from openclaw_wearable.hal.reachy_reference import (
+  from openclaw_embodiment.hal.reachy_reference import (
       ReachyMotionTracker, ReachyCameraHAL, ReachyMicrophoneHAL,
       ReachyAudioOutputHAL, ReachyDisplayHAL, ReachyTransportHAL,
   )

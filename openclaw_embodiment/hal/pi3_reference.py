@@ -952,10 +952,10 @@ class PiAudioOutput(AudioOutputHal):
             self._stop_evt.clear()
             try:
                 if format == "WAV":
-                    tmp = Path("/tmp/openclaw_wearable_audio.wav")
+                    tmp = Path("/tmp/openclaw_embodiment_audio.wav")
                     tmp.write_bytes(audio_data)
                 else:
-                    tmp = Path("/tmp/openclaw_wearable_audio.wav")
+                    tmp = Path("/tmp/openclaw_embodiment_audio.wav")
                     with wave.open(str(tmp), "wb") as wf:
                         wf.setnchannels(self._channels)
                         wf.setsampwidth(2)

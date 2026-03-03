@@ -28,7 +28,7 @@ API reference: https://pollen-robotics.github.io/reachy2-sdk/
 
 Usage:
   from reachy2_sdk import ReachySDK
-  from openclaw_wearable.hal.reachy2_reference import (
+  from openclaw_embodiment.hal.reachy2_reference import (
       Reachy2MotionTracker, Reachy2CameraHAL, Reachy2MicrophoneHAL,
       Reachy2AudioOutputHAL, Reachy2DisplayHAL, Reachy2TransportHAL,
       Reachy2ActuatorHAL,

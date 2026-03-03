@@ -65,7 +65,7 @@ class HALRegistry:
         return {"imu": [], "camera": [], "transport": []}
 
 
-class WearableSDK:
+class EmbodimentSDK:
     """Runtime orchestrator for trigger, capture, classify, and transport."""
 
     def __init__(self, registry: HALRegistry, config_path: str = "config.yaml", trigger_config: Optional[TriggerConfig] = None) -> None:
@@ -152,3 +152,6 @@ class WearableSDK:
             self.registry.display.show(DisplayCard("card", response.title, response.body, 12, 3000))
         for cb in self._response_cb:
             cb(response)
+
+# Backward-compatibility alias
+WearableSDK = EmbodimentSDK

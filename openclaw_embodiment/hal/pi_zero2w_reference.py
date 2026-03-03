@@ -22,7 +22,7 @@ Install requirements (same as pi3_reference):
   pip install picamera2 pyaudio smbus2 opencv-python
 
 Usage:
-  from openclaw_wearable.hal.pi_zero2w_reference import (
+  from openclaw_embodiment.hal.pi_zero2w_reference import (
       PiZero2WCameraHAL,
       PiZero2WMicrophoneHAL,
       PiZero2WTransportHAL,

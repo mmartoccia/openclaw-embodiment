@@ -20,7 +20,7 @@ hal_classes:
   display: Reachy2DisplayHAL
   transport: Reachy2TransportHAL
   actuator: Reachy2ActuatorHAL
-hal_module: openclaw_wearable.hal.reachy2_reference
+hal_module: openclaw_embodiment.hal.reachy2_reference
 capabilities:
   - camera
   - stereo_camera

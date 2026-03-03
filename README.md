@@ -33,7 +33,7 @@ No ROS dependency. No proprietary lock-in. Six device profiles ship out of the b
 │                   Physical Hardware                      │
 │  IMU · Camera · Microphone · Display · Actuator · Power │
 └────────────────────────┬────────────────────────────────┘
-                         │  HAL ABCs (openclaw_wearable.hal)
+                         │  HAL ABCs (openclaw_embodiment.hal)
 ┌────────────────────────▼────────────────────────────────┐
 │                  TriggerDetector                         │
 │         IDLE → SACCADE → FIXATION → CAPTURE             │
@@ -103,7 +103,7 @@ The `doctor` command checks Python version, BLE adapter availability, USB device
 **Load a device profile:**
 
 ```python
-from openclaw_wearable.profiles import load_profile
+from openclaw_embodiment.profiles import load_profile
 
 config = load_profile("reachy-mini")
 # Returns a fully configured HAL bundle for Reachy Mini Lite
@@ -112,8 +112,8 @@ config = load_profile("reachy-mini")
 **Run the end-to-end pipeline:**
 
 ```python
-from openclaw_wearable.profiles import load_profile
-from openclaw_wearable.core.pipeline import EmbodimentPipeline
+from openclaw_embodiment.profiles import load_profile
+from openclaw_embodiment.core.pipeline import EmbodimentPipeline
 
 config = load_profile("reachy-mini")
 pipeline = EmbodimentPipeline(config)
@@ -159,7 +159,7 @@ Each device has a tuned `TriggerProfile` that controls when a context capture fi
 Profiles are importable and overridable:
 
 ```python
-from openclaw_wearable.core.trigger import REACHY_MINI_TRIGGER_PROFILE, TriggerDetector
+from openclaw_embodiment.core.trigger import REACHY_MINI_TRIGGER_PROFILE, TriggerDetector
 
 detector = TriggerDetector(profile=REACHY_MINI_TRIGGER_PROFILE)
 ```

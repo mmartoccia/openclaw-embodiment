@@ -8,7 +8,7 @@ from urllib.error import URLError
 
 import typer
 
-from ..core.pipeline import HALRegistry, WearableSDK
+from ..core.pipeline import HALRegistry, EmbodimentSDK
 from ..hal.simulator import SimulatedCamera, SimulatedClassifier, SimulatedDisplay, SimulatedIMU, SimulatedMicrophone, SimulatedTransport
 
 app = typer.Typer(help="OpenClaw wearable CLI")
@@ -122,7 +122,7 @@ def demo(config: str = typer.Option("config.yaml")) -> None:
     registry.register_classifier(SimulatedClassifier())
     registry.register_transport(SimulatedTransport(), priority=0)
     registry.register_display(SimulatedDisplay())
-    sdk = WearableSDK(registry, config)
+    sdk = EmbodimentSDK(registry, config)
     sdk.start()
     typer.echo("demo running...")
     import time

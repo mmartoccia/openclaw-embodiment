@@ -2,8 +2,8 @@
 
 import time
 
-from openclaw_wearable.core.pipeline import HALRegistry, WearableSDK
-from openclaw_wearable.hal.simulator import SimulatedCamera, SimulatedClassifier, SimulatedDisplay, SimulatedIMU, SimulatedMicrophone, SimulatedTransport
+from openclaw_embodiment.core.pipeline import HALRegistry, EmbodimentSDK
+from openclaw_embodiment.hal.simulator import SimulatedCamera, SimulatedClassifier, SimulatedDisplay, SimulatedIMU, SimulatedMicrophone, SimulatedTransport
 
 
 def main() -> None:
@@ -15,7 +15,7 @@ def main() -> None:
     registry.register_classifier(SimulatedClassifier())
     registry.register_transport(SimulatedTransport(), priority=0)
     registry.register_display(SimulatedDisplay())
-    sdk = WearableSDK(registry)
+    sdk = EmbodimentSDK(registry)
     sdk.on_response(lambda r: print("[DEMO]", r.title, r.body))
     sdk.start()
     time.sleep(1.5)
