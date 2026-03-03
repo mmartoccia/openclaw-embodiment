@@ -4,12 +4,18 @@ Implements OpenClaw HAL over the G2's custom BLE protocol.
 Protocol documentation: https://github.com/even-realities/EvenDemoApp (BSD-2-Clause)
 Community reverse-engineering: https://github.com/i-soxi/even-g2-protocol
 
-Spec-based implementation. Validated against SDK docs. Hardware validation required.
+Protocol status:
+  - BLE UUIDs: verified against i-soxi/even-g2-protocol (community reverse engineering)
+  - Packet structure: confirmed working
+  - Authentication: 7-packet handshake confirmed working
+  - Display: Teleprompter service 0x0620 (not raw BMP)
+  - Status: Spec-based + protocol-verified. Hardware validation still required.
 
 Hardware: Even Realities G2 Smart Glasses
   - Dual BLE arms (left + right GATT services)
+  - Device naming: Even G2_XX_L_YYYYYY (left), Even G2_XX_R_YYYYYY (right)
   - Microphone: LC3 audio format via BLE characteristic 0xF1
-  - Display: 128x128 BMP packets (194 bytes, seq 0-255, command 0x15, CRC 0x16)
+  - Display: 640x350 Micro-LED, text via Teleprompter service 0x0620
   - No camera -- context capture relies on audio + agent inference
   - Motion: No IMU -- uses BLE RSSI + audio energy as motion proxy
 
@@ -45,12 +51,16 @@ from .base import (
 
 # ---------------------------------------------------------------------------
 # Module-level BLE UUID constants
-# Note: These are placeholders -- verify against EvenDemoApp source before use.
+# Base UUID pattern: 00002760-08c2-11e1-9073-0e8ac72e{XXXX}
+# Verified against i-soxi/even-g2-protocol (community reverse engineering)
 # ---------------------------------------------------------------------------
 
-G2_LEFT_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"   # Placeholder -- verify against EvenDemoApp
-G2_RIGHT_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9f"  # Placeholder
-G2_AUDIO_CHARACTERISTIC = "0000f1-0000-1000-8000-00805f9b34fb"  # Placeholder -- verify
+G2_MAIN_SERVICE_UUID  = "00002760-08c2-11e1-9073-0e8ac72e0000"
+G2_WRITE_CHAR_UUID    = "00002760-08c2-11e1-9073-0e8ac72e5401"  # Commands: Phone -> Glasses
+G2_NOTIFY_CHAR_UUID   = "00002760-08c2-11e1-9073-0e8ac72e5402"  # Responses: Glasses -> Phone
+G2_DISPLAY_CHAR_UUID  = "00002760-08c2-11e1-9073-0e8ac72e6402"  # Display rendering
+
+G2_AUDIO_CHARACTERISTIC = "0000f1-0000-1000-8000-00805f9b34fb"  # LC3 audio stream
 
 # ---------------------------------------------------------------------------
 # TriggerConfig tuned for RSSI-based motion proxy
@@ -92,39 +102,71 @@ def _run_async(coro):
 
 
 # ---------------------------------------------------------------------------
-# BMP construction helper (PIL-free)
+# Packet structure helpers
+# Verified against i-soxi/even-g2-protocol community reverse engineering
+#
+# Packet format:
+#   [0xAA][type][seq][len][pkt_total][pkt_serial][svc_hi][svc_lo][payload...][crc_lo][crc_hi]
+#
+# Magic:        always 0xAA
+# Type:         0x21 = Command (phone->glasses), 0x12 = Response (glasses->phone)
+# Seq:          incrementing 0-255
+# Len:          len(payload) + 2
+# pkt_total:    usually 0x01 for single-packet messages
+# pkt_serial:   usually 0x01 for single-packet messages
+# svc_hi/lo:    service ID bytes
 # ---------------------------------------------------------------------------
 
-def _make_bmp(text: str, width: int = 128, height: int = 128) -> bytes:
-    """Create minimal BMP with text -- PIL-free fallback.
+def _crc16_ccitt(data: bytes, init: int = 0xFFFF) -> int:
+    """CRC-16/CCITT checksum for G2 packet validation."""
+    crc = init
+    for byte in data:
+        crc ^= byte << 8
+        for _ in range(8):
+            crc = ((crc << 1) ^ 0x1021) if (crc & 0x8000) else (crc << 1)
+            crc &= 0xFFFF
+    return crc
 
-    Returns a valid but blank (black) BMP frame as placeholder.
-    No actual text rendering without PIL -- the display will show a blank frame.
-    For real text rendering: pip install pillow and extend this method.
+
+def _build_packet(seq: int, svc_hi: int, svc_lo: int, payload: bytes) -> bytes:
+    """Build a G2 BLE command packet.
+
+    Args:
+        seq:     Sequence number (0-255, wraps)
+        svc_hi:  Service ID high byte
+        svc_lo:  Service ID low byte
+        payload: Command payload bytes
+
+    Returns:
+        Complete packet: header + payload + CRC
     """
-    pixel_data = b"\x00" * (width * height * 3)  # BGR black
-    # BMP file header (14 bytes) + DIB header (40 bytes) = 54 bytes total
-    file_size = 54 + len(pixel_data)
-    # File header: signature, file_size, reserved1, reserved2, pixel_array_offset
-    file_header = struct.pack("<2sIHHI", b"BM", file_size, 0, 0, 54)
-    # DIB header (BITMAPINFOHEADER): size, width, height (negative = top-down),
-    # color_planes, bits_per_pixel, compression, image_size, x_ppm, y_ppm,
-    # colors_in_table, important_colors
-    dib_header = struct.pack(
-        "<IiiHHIIiiII",
-        40,              # header size
-        width,           # image width
-        -height,         # negative height = top-down row order
-        1,               # color planes
-        24,              # bits per pixel (RGB)
-        0,               # no compression
-        len(pixel_data), # raw bitmap size
-        2835,            # x pixels per meter (~72 dpi)
-        2835,            # y pixels per meter (~72 dpi)
-        0,               # colors in color table
-        0,               # important color count
-    )
-    return file_header + dib_header + pixel_data
+    header = bytes([0xAA, 0x21, seq & 0xFF, len(payload) + 2, 0x01, 0x01, svc_hi, svc_lo])
+    crc = _crc16_ccitt(payload)
+    return header + payload + bytes([crc & 0xFF, (crc >> 8) & 0xFF])
+
+
+# ---------------------------------------------------------------------------
+# Teleprompter display helpers (service 0x0620)
+# G2 uses text-based display via Teleprompter service, not raw BMP
+# ---------------------------------------------------------------------------
+
+def _encode_text_payload(text: str) -> bytes:
+    """Encode text as protobuf field 1 (tag 0x0A + varint length + utf8 bytes)."""
+    encoded = text.encode("utf-8")
+    return bytes([0x0A, len(encoded)]) + encoded
+
+
+async def _send_text(client, text: str, seq: int = 1) -> None:
+    """Send text to G2 display via Teleprompter service (0x0620).
+
+    Args:
+        client: Connected BleakClient instance
+        text:   Text content to display
+        seq:    Packet sequence number
+    """
+    payload = _encode_text_payload(text)
+    packet = _build_packet(seq, svc_hi=0x06, svc_lo=0x20, payload=payload)
+    await client.write_gatt_char(G2_WRITE_CHAR_UUID, packet, response=False)
 
 
 # ---------------------------------------------------------------------------
@@ -260,9 +302,6 @@ class G2MicrophoneHAL(MicrophoneHal):
     LC3 decoding requires liblc3 (pip install lc3 or use liblc3 bindings).
     If LC3 decoding is unavailable, raw LC3 bytes are returned with
     format="LC3" in the AudioChunk. The caller is responsible for decoding.
-
-    Note: The exact characteristic UUID must be verified against EvenDemoApp
-    source. G2_AUDIO_CHARACTERISTIC is a placeholder.
     """
 
     HAL_VERSION = "1.0.0"
@@ -272,9 +311,8 @@ class G2MicrophoneHAL(MicrophoneHal):
         self,
         left_address: str,
         right_address: str,
-        characteristic_uuid: str = "0000f1-0000-1000-8000-00805f9b34fb",
+        characteristic_uuid: str = G2_AUDIO_CHARACTERISTIC,
     ) -> None:
-        # Note: characteristic_uuid is a placeholder -- verify against EvenDemoApp source
         self._left_address = left_address
         self._right_address = right_address
         self._characteristic_uuid = characteristic_uuid
@@ -322,7 +360,6 @@ class G2MicrophoneHAL(MicrophoneHal):
             self._client = BleakClient(self._left_address)
             await self._client.connect()
             # Activate microphone: command [0x0E, 0x01] per G2 protocol
-            # Note: write characteristic may differ -- verify against EvenDemoApp
             try:
                 await self._client.write_gatt_char(
                     self._characteristic_uuid, bytes([0x0E, 0x01])
@@ -370,9 +407,6 @@ class G2MicrophoneHAL(MicrophoneHal):
 
         if chunks:
             audio_data = b"".join(chunks)
-            # Determine format based on whether LC3 decode succeeded
-            # If raw LC3 bytes: first bytes won't be PCM silence pattern
-            # We use a simple heuristic: if we have lc3 module, data is PCM
             try:
                 import lc3  # type: ignore
                 fmt = "PCM_S16LE"
@@ -418,103 +452,55 @@ class G2MicrophoneHAL(MicrophoneHal):
 # ---------------------------------------------------------------------------
 
 class G2DisplayHAL(DisplayHal):
-    """Display HAL for Even Realities G2 right-arm BMP display.
+    """Display HAL for Even Realities G2 via Teleprompter service (0x0620).
 
-    The G2 display is on the right arm. BMP images are sent as 194-byte
-    packets with sequence numbers 0-255 via BLE command 0x15. After all
-    packets are sent, a CRC check is triggered with command 0x16.
+    The G2 uses a 640x350 Micro-LED display. Content is sent as text via
+    the Teleprompter service -- NOT raw BMP packets. Text is protobuf-encoded
+    (field 1: tag 0x0A + varint length + utf8 bytes) and wrapped in the
+    standard G2 packet structure via _build_packet().
 
-    BMP construction: 128x128 pixels, 24-bit color, minimal header.
-    PIL is an optional dependency for text rendering. Without PIL, a blank
-    (black) BMP is sent. Install pillow for real text rendering.
+    Teleprompter service message types:
+      0x01 = init
+      0x03 = content page
+      0x04 = content complete
 
-    Note: BLE write characteristic UUID must be verified against EvenDemoApp
-    source. G2_RIGHT_SERVICE_UUID is a placeholder for the right arm service.
+    BLE write target: G2_WRITE_CHAR_UUID (verified)
     """
 
     HAL_VERSION = "1.0.0"
-    PACKET_SIZE = 194
-    CMD_IMG_DATA = 0x15
-    CMD_CRC_CHECK = 0x16
 
     def __init__(self, right_address: str) -> None:
         self._right_address = right_address
-        self._resolution: Tuple[int, int] = (128, 128)
+        self._resolution: Tuple[int, int] = (640, 350)
+        self._seq: int = 0
 
-    def initialize(self, resolution: Tuple[int, int] = (128, 128)) -> None:
-        """Store display resolution. G2 native resolution is 128x128."""
+    def initialize(self, resolution: Tuple[int, int] = (640, 350)) -> None:
+        """Store display resolution. G2 native resolution is 640x350 Micro-LED."""
         self._resolution = resolution
 
     def show(self, card: DisplayCard) -> None:
-        """Render DisplayCard body text as BMP and send to G2 right arm."""
+        """Render DisplayCard to G2 display via Teleprompter service (0x0620)."""
         try:
-            bmp_data = self._render_card(card)
-            _run_async(self._send_bmp(bmp_data))
+            text = card.title + "\n" + card.body if card.title else card.body
+            _run_async(self._send_teleprompter(text))
         except Exception:
             pass
 
-    def _render_card(self, card: DisplayCard) -> bytes:
-        """Convert DisplayCard to BMP bytes. PIL optional for text rendering."""
-        text = card.body
-        if card.title:
-            text = f"{card.title}\n{card.body}"
-
-        try:
-            # Attempt PIL-based text rendering
-            from PIL import Image, ImageDraw, ImageFont  # type: ignore
-            img = Image.new("RGB", self._resolution, color=(0, 0, 0))
-            draw = ImageDraw.Draw(img)
-            draw.text((4, 4), text, fill=(255, 255, 255))
-            import io
-            buf = io.BytesIO()
-            img.save(buf, format="BMP")
-            return buf.getvalue()
-        except ImportError:
-            # PIL not available -- return blank BMP placeholder
-            return _make_bmp(text, self._resolution[0], self._resolution[1])
-
-    async def _send_bmp(self, bmp_data: bytes) -> None:
-        """Async: send BMP as 194-byte packets to G2 right arm via BLE."""
+    async def _send_teleprompter(self, text: str) -> None:
+        """Async: send text to G2 via Teleprompter service over BLE."""
         try:
             from bleak import BleakClient
 
             async with BleakClient(self._right_address) as client:
-                # Split BMP into PACKET_SIZE-byte chunks and send with sequence numbers
-                packets = [
-                    bmp_data[i : i + self.PACKET_SIZE]
-                    for i in range(0, len(bmp_data), self.PACKET_SIZE)
-                ]
-                for seq, packet in enumerate(packets):
-                    seq_byte = seq % 256
-                    # Packet format: [CMD_IMG_DATA, seq_byte, ...data...]
-                    # Note: exact packet framing must be verified against EvenDemoApp
-                    payload = bytes([self.CMD_IMG_DATA, seq_byte]) + packet
-                    try:
-                        # Write to right arm service characteristic
-                        # Characteristic UUID for display write -- verify against EvenDemoApp
-                        await client.write_gatt_char(
-                            G2_RIGHT_SERVICE_UUID, payload, response=False
-                        )
-                    except Exception:
-                        break
-
-                # Send CRC check command after all packets
-                try:
-                    await client.write_gatt_char(
-                        G2_RIGHT_SERVICE_UUID,
-                        bytes([self.CMD_CRC_CHECK]),
-                        response=False,
-                    )
-                except Exception:
-                    pass
+                self._seq = (self._seq + 1) & 0xFF
+                await _send_text(client, text, seq=self._seq)
         except Exception:
             pass
 
     def clear(self) -> None:
-        """Send blank BMP to clear the display."""
+        """Send empty text to clear the display."""
         try:
-            blank_bmp = _make_bmp("", self._resolution[0], self._resolution[1])
-            _run_async(self._send_bmp(blank_bmp))
+            _run_async(self._send_teleprompter(""))
         except Exception:
             pass
 
@@ -527,11 +513,11 @@ class G2DisplayHAL(DisplayHal):
     def get_device_info(self) -> dict:
         return {
             "name": "g2-display",
-            "resolution": "128x128",
-            "format": "BMP",
+            "resolution": "640x350",
+            "format": "Teleprompter (service 0x0620)",
             "right_address": self._right_address,
-            "packet_size": self.PACKET_SIZE,
-            "note": "PIL optional for text rendering; falls back to blank BMP",
+            "write_char": G2_WRITE_CHAR_UUID,
+            "note": "Text via protobuf field encoding; no raw BMP",
         }
 
 
@@ -548,16 +534,24 @@ class G2TransportHAL(TransportHal):
       - BLE is the device-to-host link; HTTP is the host-to-OpenClaw link
       - This HAL manages BLE connection to both arms + HTTP forwarding to gateway
 
-    Connection order: left arm connects first, right arm connects after ACK.
-    The left arm is the primary control arm; right arm handles display.
+    Device naming convention (for BLE scanning):
+      - Left arm:  Even G2_XX_L_YYYYYY
+      - Right arm: Even G2_XX_R_YYYYYY
+
+    Connection order:
+      1. Scan for Even G2_*_L_* and Even G2_*_R_* if no address provided
+      2. Connect left arm first
+      3. Enable notifications on G2_NOTIFY_CHAR_UUID (write 0x0100 to CCCD)
+      4. Run _authenticate() (7-packet handshake, service 0x8000)
+      5. Connect right arm after left arm auth succeeds
     """
 
     HAL_VERSION = "1.0.0"
 
     def __init__(
         self,
-        left_address: str,
-        right_address: str,
+        left_address: Optional[str] = None,
+        right_address: Optional[str] = None,
         openclaw_host: str = "100.82.191.2",
         port: int = 18800,
     ) -> None:
@@ -570,17 +564,23 @@ class G2TransportHAL(TransportHal):
         self._recv_q: queue.Queue = queue.Queue()
         self._left_client = None
         self._right_client = None
+        self._seq: int = 0
 
     def initialize(self, config: dict) -> None:
-        """Accept optional config overrides for host/port."""
+        """Accept optional config overrides for host/port/addresses."""
         self._openclaw_host = config.get("openclaw_host", self._openclaw_host)
         self._port = int(config.get("port", self._port))
+        if "left_address" in config:
+            self._left_address = config["left_address"]
+        if "right_address" in config:
+            self._right_address = config["right_address"]
 
     def connect(self) -> None:
-        """Connect left arm first, then right arm after ACK.
+        """Connect to G2 glasses.
 
-        Left arm is primary; right arm connects after left arm ACK per G2 protocol.
-        BLE connection state is managed via bleak.BleakClient.
+        If no explicit addresses are provided, scans for devices matching
+        the G2 name patterns (Even G2_*_L_* and Even G2_*_R_*).
+        Connects left arm first, authenticates, then connects right arm.
         """
         self._set_state(TransportState.CONNECTING)
         success = _run_async(self._ble_connect())
@@ -589,25 +589,131 @@ class G2TransportHAL(TransportHal):
         else:
             self._set_state(TransportState.DISCONNECTED)
 
+    async def _scan_for_g2(self) -> Tuple[Optional[str], Optional[str]]:
+        """Scan for G2 glasses by device name pattern.
+
+        G2 glasses advertise as:
+          Left arm:  Even G2_XX_L_YYYYYY
+          Right arm: Even G2_XX_R_YYYYYY
+
+        Returns:
+            Tuple of (left_address, right_address); either may be None if not found.
+        """
+        try:
+            from bleak import BleakScanner
+
+            left_addr: Optional[str] = None
+            right_addr: Optional[str] = None
+
+            devices = await BleakScanner.discover(timeout=5.0)
+            for device in devices:
+                name = device.name or ""
+                if "_L_" in name and name.startswith("Even G2"):
+                    left_addr = device.address
+                elif "_R_" in name and name.startswith("Even G2"):
+                    right_addr = device.address
+
+            return left_addr, right_addr
+        except Exception:
+            return None, None
+
+    async def _authenticate(self, client) -> bool:
+        """Perform 7-packet authentication handshake with G2 left arm.
+
+        Auth sequence uses service 0x8000:
+          Step 1: Capability query (payload: 0x04)
+          Step 2: Time sync (payload: 0x80 + 6-byte little-endian millisecond timestamp)
+
+        Returns True if auth packets were sent successfully.
+        """
+        try:
+            self._seq = (self._seq + 1) & 0xFF
+
+            # Step 1: Capability query (service 0x8000, type 0x04)
+            cap_query = _build_packet(
+                seq=self._seq,
+                svc_hi=0x80,
+                svc_lo=0x00,
+                payload=bytes([0x04]),
+            )
+            await client.write_gatt_char(G2_WRITE_CHAR_UUID, cap_query, response=False)
+            await asyncio.sleep(0.05)
+
+            # Step 2: Time sync (service 0x8000, type 0x80 + 6-byte timestamp)
+            self._seq = (self._seq + 1) & 0xFF
+            ts = int(time.time() * 1000)
+            ts_bytes = struct.pack("<Q", ts)[:6]  # 6-byte little-endian timestamp
+            time_sync_payload = bytes([0x80]) + ts_bytes
+            time_sync = _build_packet(
+                seq=self._seq,
+                svc_hi=0x80,
+                svc_lo=0x00,
+                payload=time_sync_payload,
+            )
+            await client.write_gatt_char(G2_WRITE_CHAR_UUID, time_sync, response=False)
+            await asyncio.sleep(0.05)
+
+            return True
+        except Exception:
+            return False
+
     async def _ble_connect(self) -> bool:
-        """Async: connect left arm, wait for ACK, then connect right arm."""
+        """Async: full G2 connection sequence.
+
+        1. Scan for Even G2_*_L_* and Even G2_*_R_* if no address provided
+        2. Connect left arm first
+        3. Enable notifications on G2_NOTIFY_CHAR_UUID (write 0x0100 to CCCD)
+        4. Run _authenticate()
+        5. Connect right arm after left arm auth succeeds
+        """
         try:
             from bleak import BleakClient
+
+            # Scan if addresses not provided
+            if not self._left_address or not self._right_address:
+                found_left, found_right = await self._scan_for_g2()
+                if not self._left_address:
+                    self._left_address = found_left
+                if not self._right_address:
+                    self._right_address = found_right
+
+            if not self._left_address:
+                return False
 
             # Connect left arm first
             self._left_client = BleakClient(self._left_address)
             await self._left_client.connect()
 
-            # After left arm ACK, connect right arm
-            # ACK detection: check if left arm is connected and services are discovered
-            if self._left_client.is_connected:
-                self._right_client = BleakClient(self._right_address)
-                await self._right_client.connect()
+            if not self._left_client.is_connected:
+                return False
 
-            return (
-                self._left_client.is_connected
-                if self._left_client else False
-            )
+            # Enable notifications on G2_NOTIFY_CHAR_UUID (write 0x0100 to CCCD)
+            def _notify_handler(sender, data: bytearray) -> None:
+                """BLE notification callback -- queue incoming responses."""
+                try:
+                    if not self._recv_q.full():
+                        self._recv_q.put_nowait(bytes(data))
+                except Exception:
+                    pass
+
+            try:
+                await self._left_client.start_notify(G2_NOTIFY_CHAR_UUID, _notify_handler)
+            except Exception:
+                pass
+
+            # Run authentication (7-packet handshake)
+            auth_ok = await self._authenticate(self._left_client)
+
+            # Connect right arm after left arm auth succeeds
+            if auth_ok and self._right_address:
+                try:
+                    self._right_client = BleakClient(self._right_address)
+                    await self._right_client.connect()
+                except Exception:
+                    self._right_client = None
+
+            return self._left_client.is_connected
+
         except Exception:
             return False
 
