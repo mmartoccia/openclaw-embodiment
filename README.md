@@ -62,11 +62,14 @@ No ROS dependency. No proprietary lock-in. Six device profiles ship out of the b
 | Reachy Mini Lite (Pollen Robotics) | Robot | HTTP | Tested on CM5 | `reachy-mini` |
 | Reachy Mini Wireless (Pollen Robotics) | Robot (built-in IMU + RPi 4) | HTTP | In Progress | `reachy-mini-wireless` |
 | Reachy 2 (Pollen Robotics) | Full humanoid (7-DOF arms × 2, stereo cameras) | HTTP | In Progress | `reachy2` |
+| **Rabbit r1** ✦ | AI companion device | WiFi + creations-sdk | Reference implementation | `rabbit-r1` |
 | Raspberry Pi 5 + PiCamera Module 3 | Edge compute | BLE | Implemented (spec-based, no hw validation) | `pi5-picam` |
 | Raspberry Pi Zero 2W + PiCamera | Edge compute (constrained) | BLE | Implemented (spec-based, no hw validation) | `pi-zero2w` |
 | Luxonis OAK-D | AI camera | USB + HTTP | Implemented (spec-based, no hw validation) | `luxonis-oakd` |
 | Brilliant Labs Frame | AR glasses | BLE | Implemented (hw validation needed) | `frame-glasses` |
-| Even Realities G2 | Smart glasses | BLE dual-arm | Implemented (hw validation needed) | `even-g2` |
+| Even Realities G2 | Smart glasses | BLE dual-arm | Protocol-verified (BLE UUIDs confirmed, hw validation in progress) | `even-g2` |
+
+> **✦ Rabbit r1 note:** Rabbit Inc. officially ships OpenClaw support on r1 as a voice terminal (OTA, February 2026). The Embodiment SDK extends this with a full hardware HAL -- IMU, dual-mic array, rotating 8MP camera, and display output -- giving OpenClaw agents bidirectional hardware access beyond the official voice-only integration. The r1 serves as the reference implementation demonstrating the gap between "OpenClaw compliant" and full embodiment.
 
 ---
 
