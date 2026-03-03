@@ -5,14 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "openclaw-embodiment"
 version = "0.1.0"
-description = "OpenClaw Embodiment SDK"
+description = "Hardware abstraction layer connecting robots, wearables, and edge devices to the OpenClaw AI agent framework"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.9"
 authors = [
   { name = "OpenClaw Contributors" }
 ]
-keywords = ["wearable", "openclaw", "ble", "imu", "context"]
+keywords = ["embodiment", "openclaw", "ble", "imu", "context", "robot", "edge-compute", "physical-ai", "agent", "hal"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.9",
@@ -59,23 +59,23 @@ dev = [
 ]
 
 [project.scripts]
-openclaw-embodiment = "openclaw_wearable.cli.main:app"
+openclaw-embodiment = "openclaw_embodiment.cli.main:app"
 
-[project.entry-points."openclaw_wearable.hal.imu"]
-pi_imu = "openclaw_wearable.hal.pi3_reference:PiIMU"
+[project.entry-points."openclaw_embodiment.hal.imu"]
+pi_imu = "openclaw_embodiment.hal.pi3_reference:PiIMU"
 
-[project.entry-points."openclaw_wearable.hal.camera"]
-pi_camera = "openclaw_wearable.hal.pi3_reference:PiCamera"
+[project.entry-points."openclaw_embodiment.hal.camera"]
+pi_camera = "openclaw_embodiment.hal.pi3_reference:PiCamera"
 
-[project.entry-points."openclaw_wearable.hal.transport"]
-pi_ble = "openclaw_wearable.hal.pi3_reference:PiBLETransport"
-pi_wifi = "openclaw_wearable.hal.pi3_reference:PiWiFiTransport"
+[project.entry-points."openclaw_embodiment.hal.transport"]
+pi_ble = "openclaw_embodiment.hal.pi3_reference:PiBLETransport"
+pi_wifi = "openclaw_embodiment.hal.pi3_reference:PiWiFiTransport"
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.package-data]
-"openclaw_wearable" = ["models/*.tflite", "config/*.yaml"]
+"openclaw_embodiment" = ["models/*.tflite", "config/*.yaml"]
 
 [tool.ruff]
 line-length = 100

@@ -2,6 +2,33 @@
 
 ---
 
+## ⚡ OpenClaw Beta Impact (2026-03-03)
+
+A major OpenClaw beta shipped today with three capabilities that directly upgrade this SDK's architecture. These are high-priority additions to v1.1 and v1.2.
+
+### 1. Bidirectional Agent Loop — `onAgentEvent` + `onSessionTranscriptUpdate`
+**Impact:** HIGH — closes the missing half of the device-to-agent architecture.
+
+Current flow is one-way: device fires trigger → SDK posts context → nothing comes back. The new plugin runtime events let the agent push responses back to the device in real-time. This is what makes Reachy actually *react* to the agent — not just send context into the void.
+
+**Target:** v1.1 — `AgentResponseListener` class wrapping `onAgentEvent`, wired into `EmbodimentSDK` response callbacks.
+
+### 2. Native STT via `api.runtime.stt.transcribeAudioFile(...)`
+**Impact:** HIGH — eliminates the missing transcription path in MicrophoneHal.
+
+`MicrophoneHal` captures raw `AudioChunk` but has no transcription path. The beta provides a first-class STT bridge through OpenClaw's configured audio providers. `MicrophoneHal.transcribe()` can now delegate to `openclaw stt transcribe` instead of shipping a per-device speech stack.
+
+**Target:** v1.1 — add `transcribe()` abstract method to `MicrophoneHal`, implement via OpenClaw STT in reference HALs.
+
+### 3. Instant Agent Wake — `runtime.system.requestHeartbeatNow(...)`
+**Impact:** MEDIUM-HIGH — removes heartbeat latency from event-driven flows.
+
+Current trigger architecture polls at 25Hz but the agent only wakes at the next heartbeat cycle — up to 30s latency. `requestHeartbeatNow()` lets the device kick the agent immediately on trigger. Critical for Reachy real-time response.
+
+**Target:** v1.2 — `TriggerDetector` emits heartbeat wake call on CAPTURE state transition.
+
+---
+
 ## Current Status (Gate 3 Complete)
 
 **Package:** `openclaw-embodiment` (Python, Apache 2.0)
@@ -58,6 +85,33 @@
 ### New device profiles
 - **Meta Ray-Ban** -- pending Meta Ray-Ban SDK public release; prioritized as soon as SDK ships
 - **Apple Vision Pro** -- via VisionProTeleop bridge; macOS-native profile
+
+---
+
+## v1.2 — Agent Loop Completion
+
+**Theme: Close the bidirectional loop + native OpenClaw integration**
+
+### AgentResponseListener
+- Wraps `runtime.events.onAgentEvent` to push agent responses back to device
+- Routes text responses to `AudioOutputHal.speak()` and `DisplayHal.show_card()`
+- `EmbodimentSDK.on_agent_response(callback)` wired into pipeline
+
+### MicrophoneHal STT Bridge
+- Add `transcribe(audio_chunk: AudioChunk) -> str` abstract method to `MicrophoneHal`
+- Default implementation calls `openclaw agent --message` with audio file path
+- OpenClaw routes to configured STT provider (Whisper, Deepgram, etc.)
+- Removes need for per-device speech stack
+
+### Heartbeat-Driven Event Wake
+- `TriggerDetector` calls `requestHeartbeatNow()` on CAPTURE state
+- Eliminates up to 30s latency between device event and agent response
+- Configurable: `TriggerConfig.heartbeat_wake: bool = True`
+
+### sessions_spawn Attachment Transport
+- Camera frames and audio clips attachable directly to `sessions_spawn` turns
+- Bypasses context query API for rich media — agent gets raw frame, not just embedding
+- New `TransportHal` implementation: `AttachmentTransport`
 
 ---
 
