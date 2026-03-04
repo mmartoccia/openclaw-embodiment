@@ -170,6 +170,9 @@ class SimulatedTransport(TransportHal):
 
 
 class SimulatedDisplay(DisplayHal):
+    def render_agent_response(self, response) -> None:
+        pass  # no-op for simulator
+
     """Console display sink used by tests and demo."""
 
     def initialize(self, resolution=(80, 24)) -> None:
