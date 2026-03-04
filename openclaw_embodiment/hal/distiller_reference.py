@@ -23,7 +23,7 @@ import subprocess
 import sys
 import tempfile
 import wave
-from typing import Optional
+from typing import Optional, Tuple
 
 from openclaw_embodiment.hal.base import (
     AudioChunk,
@@ -242,12 +242,23 @@ class DistillerAudioOutputHAL(AudioOutputHal):
 # ---------------------------------------------------------------------------
 
 class DistillerCameraHAL(CameraHal):
-    """Captures images from OV5647 Pi Camera via rpicam-still."""
+    """Captures images from OV5647 Pi Camera via rpicam-still.
+
+    Notes:
+        The OV5647 on some Distiller CM5 units produces a green/magenta color
+        cast due to a broken ISP pipeline. Color information should not be
+        trusted. Use capture_grayscale() for reliable structural output.
+        The ``color_reliable`` flag reflects this hardware reality.
+    """
+
+    #: Set False on units with known broken ISP color pipeline (OV5647 issue).
+    color_reliable: bool = False
 
     def initialize(self, width: int = 640, height: int = 480) -> None:
         self._width = width
         self._height = height
-        logger.info("[DistillerCamera] OV5647 %dx%d ready.", width, height)
+        logger.info("[DistillerCamera] OV5647 %dx%d ready (color_reliable=%s).",
+                    width, height, self.color_reliable)
 
     def capture(self) -> bytes:
         """Returns JPEG bytes."""
@@ -273,6 +284,106 @@ class DistillerCameraHAL(CameraHal):
     def capture_frame(self) -> bytes:
         """Alias for capture() -- returns raw JPEG bytes."""
         return self.capture()
+
+    def capture_grayscale(self) -> bytes:
+        """Capture a grayscale JPEG, bypassing the broken color pipeline.
+
+        The OV5647 color cast is a hardware/ISP issue that cannot be corrected
+        in software reliably. Converting to grayscale immediately discards the
+        broken chrominance while preserving structural content (edges, shapes,
+        depth cues, text).
+
+        Returns:
+            JPEG-encoded grayscale image as bytes.
+        """
+        try:
+            from PIL import Image  # type: ignore
+        except ImportError as exc:
+            raise RuntimeError(
+                "Pillow is required for capture_grayscale(). "
+                "Install with: pip install Pillow"
+            ) from exc
+
+        raw_jpeg = self.capture()
+        img = Image.open(io.BytesIO(raw_jpeg)).convert("L")
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=85)
+        return buf.getvalue()
+
+    def get_lighting_level(self) -> str:
+        """Estimate ambient lighting from a grayscale frame mean pixel value.
+
+        Returns:
+            "bright" -- mean >= 160
+            "dim"    -- mean >= 60
+            "dark"   -- mean < 60
+        """
+        try:
+            from PIL import Image  # type: ignore
+            import statistics
+        except ImportError as exc:
+            raise RuntimeError("Pillow is required for get_lighting_level().") from exc
+
+        raw_jpeg = self.capture_grayscale()
+        img = Image.open(io.BytesIO(raw_jpeg))
+        try:
+            pixels = list(img.get_flattened_data())  # Pillow >= 10
+        except AttributeError:
+            pixels = list(img.getdata())             # Pillow < 10 fallback
+        mean = sum(pixels) / len(pixels) if pixels else 0.0
+
+        if mean >= 160:
+            return "bright"
+        elif mean >= 60:
+            return "dim"
+        else:
+            return "dark"
+
+    def estimate_person_count(self) -> Optional[int]:
+        """Estimate the number of people visible using edge density heuristic.
+
+        TODO: Replace with a real VLM call (e.g., Florence-2 or MobileNet SSD)
+              once a suitable local model is deployed on the Distiller.
+
+        Current approach: Sobel edge density as a coarse human-presence proxy.
+        High edge density in the mid-frame region suggests one or more people.
+        This is NOT reliable for actual person counting -- treat as 0/1 presence
+        indicator only.
+
+        Returns:
+            0  -- no people likely present (low edge density)
+            1  -- at least one person likely present (high edge density)
+            None -- if image capture or processing fails
+        """
+        try:
+            from PIL import Image, ImageFilter  # type: ignore
+        except ImportError:
+            logger.warning("[DistillerCamera] Pillow not available for person estimation.")
+            return None
+
+        try:
+            raw_jpeg = self.capture_grayscale()
+            img = Image.open(io.BytesIO(raw_jpeg))
+
+            # Focus on the center 60% of the frame (people tend to be center-framed)
+            w, h = img.size
+            cx1, cy1 = int(w * 0.2), int(h * 0.15)
+            cx2, cy2 = int(w * 0.8), int(h * 0.85)
+            roi = img.crop((cx1, cy1, cx2, cy2))
+
+            # Apply Sobel-like edge filter
+            edges = roi.filter(ImageFilter.FIND_EDGES)
+            edge_pixels = list(edges.getdata())
+            mean_edge = sum(edge_pixels) / max(len(edge_pixels), 1)
+
+            # Empirical threshold: >25 mean edge intensity suggests human presence
+            # TODO: Calibrate on actual Distiller footage
+            if mean_edge > 25:
+                return 1
+            return 0
+        except Exception as e:
+            logger.warning("[DistillerCamera] estimate_person_count failed: %s", e)
+            return None
 
     def get_device_info(self) -> dict:
         return {
