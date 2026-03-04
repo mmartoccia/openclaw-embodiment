@@ -1,9 +1,14 @@
 """HAL abstract contracts and shared datatypes."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, Iterator, Optional, Tuple
+
+if TYPE_CHECKING:
+    from ..core.response import AgentResponse as _AgentResponse
 
 
 @dataclass(frozen=True)
@@ -39,6 +44,8 @@ class AudioChunk:
     channels: int
     format: str
     data: bytes
+    duration_ms: int = 0
+    timestamp: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -168,6 +175,20 @@ class MicrophoneHal(HALBase, ABC):
         return None
 
     @abstractmethod
+    def transcribe(self, audio: AudioChunk, language: str = "en") -> str:
+        """Transcribe audio via OpenClaw native STT bridge.
+
+        Delegates to: openclaw stt transcribe (api.runtime.stt.transcribeAudioFile)
+        Returns: transcribed text string
+        """
+        ...
+
+    @abstractmethod
+    def transcribe_stream(self, stream: Iterator[AudioChunk]) -> Iterator[str]:
+        """Streaming transcription -- yields partial transcripts as audio arrives."""
+        ...
+
+    @abstractmethod
     def shutdown(self) -> None:
         """Shutdown microphone."""
 
@@ -244,6 +265,14 @@ class DisplayHal(HALBase, ABC):
         """Clear display."""
 
     @abstractmethod
+    def render_agent_response(self, response: "_AgentResponse") -> None:
+        """Render an agent response on the display.
+
+        Args:
+            response: AgentResponse from the bidirectional agent pipeline.
+        """
+
+    @abstractmethod
     def shutdown(self) -> None:
         """Shutdown display."""
 
@@ -266,6 +295,14 @@ class AudioOutputHal(HALBase, ABC):
     @abstractmethod
     def is_playing(self) -> bool:
         """Return playback state."""
+
+    @abstractmethod
+    def speak_agent_response(self, response: "_AgentResponse") -> None:
+        """Speak an agent response via TTS or audio playback.
+
+        Args:
+            response: AgentResponse from the bidirectional agent pipeline.
+        """
 
     @abstractmethod
     def shutdown(self) -> None:
