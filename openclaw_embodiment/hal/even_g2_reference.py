@@ -34,10 +34,9 @@ import asyncio
 import queue
 import struct
 import time
-from typing import Callable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
 
 from ..core.trigger import TriggerConfig
-from ..transport.stt_bridge import OpenClawSTTBridge, STTProvider
 from .base import (
     AudioChunk,
     DisplayCard,
@@ -49,6 +48,9 @@ from .base import (
     TransportHal,
     TransportState,
 )
+
+if TYPE_CHECKING:
+    from ..core.response import AgentResponse
 
 # ---------------------------------------------------------------------------
 # Module-level BLE UUID constants
@@ -431,17 +433,6 @@ class G2MicrophoneHAL(MicrophoneHal):
         """Single microphone array -- Direction of Arrival not supported."""
         return None
 
-    def transcribe(self, audio, language: str = "en") -> str:
-        """Transcribe audio via OpenClaw native STT bridge."""
-        bridge = OpenClawSTTBridge(provider=STTProvider.OPENCLAW)
-        return bridge.transcribe(audio, language=language)
-
-    def transcribe_stream(self, stream, language: str = "en"):
-        """Streaming transcription -- yields partial transcripts as audio arrives."""
-        bridge = OpenClawSTTBridge(provider=STTProvider.OPENCLAW)
-        for chunk in stream:
-            yield bridge.transcribe(chunk, language=language)
-
     def shutdown(self) -> None:
         self.stop_recording()
 
@@ -485,6 +476,7 @@ class G2DisplayHAL(DisplayHal):
         self._right_address = right_address
         self._resolution: Tuple[int, int] = (640, 350)
         self._seq: int = 0
+        self._last_rendered: Optional[str] = None
 
     def initialize(self, resolution: Tuple[int, int] = (640, 350)) -> None:
         """Store display resolution. G2 native resolution is 640x350 Micro-LED."""
@@ -513,6 +505,29 @@ class G2DisplayHAL(DisplayHal):
         """Send empty text to clear the display."""
         try:
             _run_async(self._send_teleprompter(""))
+        except Exception:
+            pass
+
+    def render_agent_response(self, response: "AgentResponse") -> None:
+        """Send agent response text to G2 Teleprompter display via BLE.
+
+        Routes the response content to the G2 display using the Teleprompter
+        service (0x0620) via BLE characteristic G2_WRITE_CHAR_UUID (0x5401).
+        Title from metadata (if present) is prepended to the content.
+
+        Args:
+            response: AgentResponse containing text content to display.
+        """
+        try:
+            title = response.metadata.get("title", "")
+            if title:
+                text = f"{title}\n{response.content}"
+            else:
+                text = response.content
+            # Truncate to reasonable display length for G2 Micro-LED
+            text = text[:200]
+            self._last_rendered = text  # Always store for inspection/testing
+            _run_async(self._send_teleprompter(text))
         except Exception:
             pass
 

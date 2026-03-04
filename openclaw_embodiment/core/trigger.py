@@ -126,84 +126,27 @@ class TriggerDetector:
         return None
 
     def request_heartbeat_now(self, reason: str = "device_trigger") -> bool:
-        """Wake the OpenClaw agent immediately via runtime heartbeat request.
-
-        Calls ``openclaw heartbeat --now`` (or writes to heartbeat socket if available).
-        Enforces a 5-second cooldown between calls to prevent spam on rapid triggers.
-
-        Use when: motion detected, voice trigger fired, button pressed.
-
-        Args:
-            reason: Human-readable reason for the wake request (logged and passed
-                    to the runtime for diagnostics).
-
-        Returns:
-            True if the wake call was dispatched, False if cooldown is active.
+        """Wake the OpenClaw agent via gateway REST API.
+        
+        Enforces 5-second cooldown between calls.
+        Returns True if wake dispatched, False if on cooldown or unavailable.
         """
         now = time.monotonic()
         elapsed = now - self._last_heartbeat_time
         if elapsed < self.HEARTBEAT_COOLDOWN_S:
-            remaining = self.HEARTBEAT_COOLDOWN_S - elapsed
-            logger.debug(
-                "[Trigger] Heartbeat wake suppressed -- cooldown active (%.1fs remaining, reason=%r)",
-                remaining,
-                reason,
-            )
+            logger.debug("[Trigger] Heartbeat cooldown active (%.1fs).", self.HEARTBEAT_COOLDOWN_S - elapsed)
             return False
-
         self._last_heartbeat_time = now
         logger.info("[Trigger] Requesting heartbeat wake (reason=%r).", reason)
-
-        # Try subprocess call to openclaw runtime.
         try:
-            result = subprocess.run(
-                ["openclaw", "heartbeat", "--now", f"--reason={reason}"],
-                capture_output=True,
-                timeout=2.0,
-                check=False,
-            )
-            if result.returncode == 0:
-                logger.debug("[Trigger] Heartbeat wake dispatched via openclaw CLI.")
-            else:
-                logger.warning(
-                    "[Trigger] openclaw heartbeat --now returned non-zero: %d -- stderr: %s",
-                    result.returncode,
-                    result.stderr.decode(errors="replace").strip(),
-                )
-        except FileNotFoundError:
-            logger.debug("[Trigger] openclaw CLI not found -- heartbeat wake skipped (OK in tests).")
-        except subprocess.TimeoutExpired:
-            logger.warning("[Trigger] openclaw heartbeat --now timed out.")
-        except Exception as exc:
-            logger.warning("[Trigger] Heartbeat wake error: %s", exc)
-
-        return True
-
-
-# ---------------------------------------------------------------------------
-# Curated device profiles -- real-world tuned parameters
-# ---------------------------------------------------------------------------
-
-REACHY_MINI_TRIGGER_PROFILE = TriggerConfig(
-    polling_hz=10,
-    saccade_threshold_dps=30.0,     # Robot head moves slower than human saccade
-    saccade_duration_ms=150,
-    fixation_threshold_dps=5.0,
-    fixation_duration_ms=600,        # Longer fixation for deliberate robot gaze
-    motion_reject_threshold_dps=120.0,
-    motion_reject_duration_ms=200,
-    refractory_period_ms=2000,       # 2s between captures (robot pacing)
-)
-"""Tuned for Reachy Mini Lite head servo encoder input at 10Hz polling."""
-
-GLASSES_TRIGGER_PROFILE = TriggerConfig(
-    polling_hz=25,
-    saccade_threshold_dps=180.0,     # Human saccade: fast eye/head movement
-    saccade_duration_ms=200,
-    fixation_threshold_dps=20.0,
-    fixation_duration_ms=400,
-    motion_reject_threshold_dps=280.0,
-    motion_reject_duration_ms=150,
-    refractory_period_ms=700,
-)
-"""Tuned for glasses/wearables with real IMU at 25Hz polling."""
+            import urllib.request as _ur, json as _j
+            _payload = _j.dumps({"reason": reason, "source": "embodiment_sdk"}).encode()
+            _req = _ur.Request("http://localhost:18799/heartbeat/trigger",
+                data=_payload, headers={"Content-Type": "application/json"}, method="POST")
+            with _ur.urlopen(_req, timeout=2) as _resp:
+                dispatched = _resp.status == 200
+                logger.debug("[Trigger] Gateway heartbeat: status=%d", _resp.status)
+                return dispatched
+        except Exception as e:
+            logger.debug("[Trigger] Gateway unavailable (%s) -- heartbeat skipped.", e)
+            return False
