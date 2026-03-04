@@ -202,6 +202,19 @@ class DistillerAudioOutputHAL(AudioOutputHal):
         if response.response_type in (ResponseType.TEXT, ResponseType.AUDIO):
             self.speak(str(response.content))
 
+
+    def get_device_info(self) -> dict:
+        return {"name": "Pamir AI SoundCard", "device": self.DEVICE}
+
+    def play(self, chunk: "AudioChunk") -> None:
+        self.play_audio(chunk)
+
+    def is_playing(self) -> bool:
+        return False
+
+    def stop(self) -> None:
+        pass
+
     def play_audio(self, chunk: AudioChunk) -> None:
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             tmp = f.name
@@ -255,6 +268,20 @@ class DistillerCameraHAL(CameraHal):
         finally:
             if os.path.exists(tmp):
                 os.unlink(tmp)
+
+
+    def capture_frame(self) -> bytes:
+        """Alias for capture() -- returns raw JPEG bytes."""
+        return self.capture()
+
+    def get_device_info(self) -> dict:
+        return {
+            "name": "OV5647 Pi Camera",
+            "device": "/dev/video0",
+            "width": getattr(self, "_width", 640),
+            "height": getattr(self, "_height", 480),
+            "format": "JPEG",
+        }
 
     def shutdown(self) -> None:
         pass
@@ -340,6 +367,16 @@ class DistillerEinkDisplayHAL(DisplayHal):
         title = response.metadata.get("title", "Agent")
         body = str(response.content)[:200]
         self.show(DisplayCard(title=title, body=body))
+
+
+    def get_device_info(self) -> dict:
+        return {
+            "name": "Distiller E-ink Display",
+            "width": self.WIDTH,
+            "height": self.HEIGHT,
+            "interface": "SPI",
+            "device": "/dev/spidev0.0",
+        }
 
     def clear(self) -> None:
         self.show(DisplayCard(title="", body=""))
