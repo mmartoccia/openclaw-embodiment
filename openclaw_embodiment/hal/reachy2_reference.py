@@ -57,6 +57,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 
+from ..transport.stt_bridge import OpenClawSTTBridge, STTProvider
 from .base import (
     ActuatorCommand,
     ActuatorHal,
@@ -416,13 +417,14 @@ class Reachy2MicrophoneHAL(MicrophoneHal):
     HAL_VERSION = "1.0.0"
     SAMPLE_RATE = 16000
 
-    def __init__(self, reachy: Any) -> None:
+    def __init__(self, reachy: Any, stt_provider: STTProvider = STTProvider.OPENCLAW) -> None:
         self._reachy = reachy
         self._recording = False
         self._buffer: queue.Queue = queue.Queue(maxsize=50)
         self._thread: Optional[threading.Thread] = None
         self._run = False
         self._last_doa: Optional[Tuple[float, Optional[float]]] = None
+        self._stt_bridge = OpenClawSTTBridge(provider=stt_provider)
 
     def initialize(self, sample_rate: int = 16000, channels: int = 1) -> None:
         pass  # Audio backend initialized on start_recording
@@ -497,6 +499,15 @@ class Reachy2MicrophoneHAL(MicrophoneHal):
     def is_available(self) -> bool:
         """Return True if audio recording is active."""
         return self._recording
+
+    def transcribe(self, audio: AudioChunk, language: str = "en") -> str:
+        """Transcribe audio via OpenClaw native STT bridge."""
+        return self._stt_bridge.transcribe(audio, language=language)
+
+    def transcribe_stream(self, stream, language: str = "en"):
+        """Streaming transcription -- yields partial transcripts as audio arrives."""
+        for chunk in stream:
+            yield self.transcribe(chunk, language=language)
 
     def shutdown(self) -> None:
         self.stop_recording()

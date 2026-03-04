@@ -476,6 +476,7 @@ class G2DisplayHAL(DisplayHal):
         self._right_address = right_address
         self._resolution: Tuple[int, int] = (640, 350)
         self._seq: int = 0
+        self._last_rendered: Optional[str] = None
 
     def initialize(self, resolution: Tuple[int, int] = (640, 350)) -> None:
         """Store display resolution. G2 native resolution is 640x350 Micro-LED."""
@@ -525,6 +526,7 @@ class G2DisplayHAL(DisplayHal):
                 text = response.content
             # Truncate to reasonable display length for G2 Micro-LED
             text = text[:200]
+            self._last_rendered = text  # Always store for inspection/testing
             _run_async(self._send_teleprompter(text))
         except Exception:
             pass
