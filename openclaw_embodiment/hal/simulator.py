@@ -197,6 +197,11 @@ class SimulatedDisplay(DisplayHal):
 
 
 class SimulatedAudioOutput(AudioOutputHal):
+    def speak_agent_response(self, response) -> None:
+        """Route agent response to TTS."""
+        if hasattr(response, 'content'):
+            self.speak(str(response.content))
+
     """Memory-backed audio sink."""
 
     def initialize(self, sample_rate: int = 22050, channels: int = 1) -> None:

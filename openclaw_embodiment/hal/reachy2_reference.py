@@ -553,6 +553,11 @@ class Reachy2MicrophoneHAL(MicrophoneHal):
 # ---------------------------------------------------------------------------
 
 class Reachy2AudioOutputHAL(AudioOutputHal):
+    def speak_agent_response(self, response) -> None:
+        """Route agent response to Reachy2 TTS."""
+        if hasattr(response, 'content'):
+            self.speak(str(response.content))
+
     """TTS and audio playback via Reachy 2 speaker system.
 
     Wraps reachy2-sdk audio output API for PCM playback.
@@ -651,6 +656,11 @@ class Reachy2AudioOutputHAL(AudioOutputHal):
 # ---------------------------------------------------------------------------
 
 class Reachy2DisplayHAL(DisplayHal):
+    def render_agent_response(self, response) -> None:
+        """Render agent response on Reachy2 face display."""
+        if hasattr(response, 'content'):
+            self.show(response.content[:200])
+
     """Face display: LED antenna expressions and face screen.
 
     Reachy 2 has both LED antennas (expressive mood lighting) and a face
