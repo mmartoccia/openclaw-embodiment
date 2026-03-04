@@ -1,5 +1,5 @@
 # OpenClaw Embodiment — Context Engine Spec
-**Status:** Draft v0.1 — March 3, 2026
+**Status:** Draft v0.2 — March 4, 2026
 **Authors:** Mike Martoccia
 
 ---
@@ -12,6 +12,43 @@ The answer is three things:
 1. A typed schema (`SensorContext`) that is always valid regardless of available sensors
 2. A maintained world state (`WorldModel`) with explicit staleness tracking
 3. A burst output model that bypasses natural language for time-sensitive responses
+
+---
+
+## Core Design Principles
+
+### Adaptive Attention Principle
+**Sensor polling intervals scale inversely with information gain.**
+
+A sensor that returns identical results N times consecutively backs off exponentially. A sensor that detects change tightens. The system allocates attention where the environment is changing, not uniformly across time.
+
+This is not an optimization -- it is the correct model for how a situated agent should behave. A room that hasn't changed in two hours does not need to be sampled every 30 seconds. A room where something just moved needs immediate high-resolution coverage.
+
+**Attention State Machine:**
+
+```
+DORMANT  →  long intervals    (BLE: 5min, audio: 5min,  camera: 30min)
+  ↓ any sensor registers activity
+IDLE     →  baseline intervals (BLE: 60s,  audio: 2min,  camera: 10min)
+  ↓ multiple sensors active, or known device appears
+ACTIVE   →  tighter intervals  (BLE: 30s,  audio: 60s,   camera: 5min)
+  ↓ anomaly detected
+ALERT    →  maximum resolution (BLE: 10s,  audio: 15s,   camera: 60s)
+  ↓ anomaly resolves, activity diminishes
+(back down through ACTIVE → IDLE → DORMANT)
+```
+
+**Information Gain Signals (per sensor):**
+- BLE: device set unchanged across N consecutive scans → low gain → stretch interval
+- Audio: RMS and ambient class unchanged → low gain → stretch interval
+- Camera: diff score near zero vs last frame → low gain → stretch interval
+
+**Gateway reporting follows attention state:**
+- `DORMANT`: nothing to report, no push
+- `IDLE/ACTIVE`: periodic discovery reports on schedule
+- `ALERT`: immediate push on anomaly detection
+
+**The `AttentionManager` class** sits above the `DiscoveryLoop` and controls sleep intervals dynamically. The `DiscoveryLoop` is the scaffold; `AttentionManager` is what makes it adaptive. The `WorldModel` already carries the signal to drive transitions -- stable `awareness_level` + no entity confidence changes = the system is bored = back off.
 
 ---
 
