@@ -39,6 +39,8 @@ class AudioChunk:
     channels: int
     format: str
     data: bytes
+    duration_ms: int = 0
+    timestamp: float = 0.0
 
 
 @dataclass(frozen=True)

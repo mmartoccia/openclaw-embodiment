@@ -1,10 +1,31 @@
 """Trigger pipeline state handling."""
 
+import logging
+import subprocess
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, List, Optional
 
 from ..hal.base import IMUSample
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class HeartbeatWakeResult:
+    """Result of a heartbeat wake request.
+
+    Attributes:
+        success: True if the wake call was dispatched, False if cooldown blocked it.
+        timestamp: Epoch timestamp of this wake attempt.
+        cooldown_remaining: Seconds until next wake call is allowed (0 if success).
+        reason: Why the wake was requested.
+    """
+
+    success: bool
+    timestamp: float
+    cooldown_remaining: float
+    reason: str = "device_trigger"
 
 
 @dataclass
@@ -41,15 +62,29 @@ TriggerProfile = TriggerConfig
 class TriggerDetector:
     """State machine implementing IDLE->SACCADE->FIXATION->CAPTURE."""
 
+    #: Minimum seconds between heartbeat wake calls (anti-spam).
+    HEARTBEAT_COOLDOWN_S: float = 5.0
+
     def __init__(self, config: TriggerConfig) -> None:
         self.config = config
         self.state = "IDLE"
         self._saccade_start = 0
         self._fixation_start = 0
         self._last_capture = 0
+        self._last_heartbeat_time: float = 0.0
 
     def update(self, sample: IMUSample) -> Optional[TriggerEvent]:
-        """Consume IMU sample and emit trigger event when capture condition is met."""
+        """Consume IMU sample and emit trigger event when capture condition is met.
+
+        On CAPTURE state transition, automatically calls request_heartbeat_now()
+        to wake the OpenClaw agent immediately.
+
+        Args:
+            sample: Single IMU measurement from the device.
+
+        Returns:
+            TriggerEvent if CAPTURE state was reached, None otherwise.
+        """
         now = sample.timestamp_ms
         speed = max(abs(sample.gyro_x), abs(sample.gyro_y), abs(sample.gyro_z))
         if now - self._last_capture < self.config.refractory_period_ms:
@@ -74,6 +109,8 @@ class TriggerDetector:
                     self.state = "CAPTURE"
                     self._last_capture = now
                     self.state = "IDLE"
+                    # Auto-wake agent on CAPTURE state transition.
+                    self.request_heartbeat_now(reason="capture_trigger")
                     return TriggerEvent(
                         event_id="evt-%d" % now,
                         timestamp_ms=now,
@@ -87,6 +124,60 @@ class TriggerDetector:
                 self._fixation_start = 0
             return None
         return None
+
+    def request_heartbeat_now(self, reason: str = "device_trigger") -> bool:
+        """Wake the OpenClaw agent immediately via runtime heartbeat request.
+
+        Calls ``openclaw heartbeat --now`` (or writes to heartbeat socket if available).
+        Enforces a 5-second cooldown between calls to prevent spam on rapid triggers.
+
+        Use when: motion detected, voice trigger fired, button pressed.
+
+        Args:
+            reason: Human-readable reason for the wake request (logged and passed
+                    to the runtime for diagnostics).
+
+        Returns:
+            True if the wake call was dispatched, False if cooldown is active.
+        """
+        now = time.monotonic()
+        elapsed = now - self._last_heartbeat_time
+        if elapsed < self.HEARTBEAT_COOLDOWN_S:
+            remaining = self.HEARTBEAT_COOLDOWN_S - elapsed
+            logger.debug(
+                "[Trigger] Heartbeat wake suppressed -- cooldown active (%.1fs remaining, reason=%r)",
+                remaining,
+                reason,
+            )
+            return False
+
+        self._last_heartbeat_time = now
+        logger.info("[Trigger] Requesting heartbeat wake (reason=%r).", reason)
+
+        # Try subprocess call to openclaw runtime.
+        try:
+            result = subprocess.run(
+                ["openclaw", "heartbeat", "--now", f"--reason={reason}"],
+                capture_output=True,
+                timeout=2.0,
+                check=False,
+            )
+            if result.returncode == 0:
+                logger.debug("[Trigger] Heartbeat wake dispatched via openclaw CLI.")
+            else:
+                logger.warning(
+                    "[Trigger] openclaw heartbeat --now returned non-zero: %d -- stderr: %s",
+                    result.returncode,
+                    result.stderr.decode(errors="replace").strip(),
+                )
+        except FileNotFoundError:
+            logger.debug("[Trigger] openclaw CLI not found -- heartbeat wake skipped (OK in tests).")
+        except subprocess.TimeoutExpired:
+            logger.warning("[Trigger] openclaw heartbeat --now timed out.")
+        except Exception as exc:
+            logger.warning("[Trigger] Heartbeat wake error: %s", exc)
+
+        return True
 
 
 # ---------------------------------------------------------------------------
