@@ -1,46 +1,88 @@
-# Contributing to OpenClaw Embodiment SDK
+# Contributing
 
-Thanks for your interest. We are early -- the SDK is in design and the reference hardware is in planning. There is a lot of room to shape where this goes.
+The SDK is a hardware abstraction layer. It captures context from physical devices, packages it, and delivers it to an agent runtime. It has no opinion about what the agent does.
 
----
-
-## Where We Are
-
-The architecture is defined. The bridge protocol, display pipeline, audio pipeline, and context sync model are documented in [ARCHITECTURE.md](ARCHITECTURE.md). Implementation has not started in the open yet.
-
-The best contributions right now are ideas, questions, and feedback on the architecture before we build it.
+Keep that boundary clean.
 
 ---
 
-## How to Contribute
+## What belongs here
 
-**Discussions are the primary venue for now.**
+- HAL implementations for real hardware
+- Device profiles (capability vectors + trigger profiles)
+- Context schema definitions (`SensorContext`, `WorldModel`, `ResponseBurst`)
+- Transport implementations (BLE, HTTP, stdio)
+- Tests that run without hardware
 
-- Questions about the architecture? [Open a discussion.](https://github.com/mmartoccia/openclaw-embodiment/discussions)
-- Ideas for the SDK or bridge protocol? [Open a discussion.](https://github.com/mmartoccia/openclaw-embodiment/discussions)
-- Hardware you want to see supported? [Open a discussion.](https://github.com/mmartoccia/openclaw-embodiment/discussions)
-- Bug in the docs? Open an issue or a PR.
+## What doesn't
 
-**Developer waitlist:**
-
-If you want early SDK access and want to be involved in the first build cycles, join the developer waitlist at [openclaw-wearable-os.vercel.app](https://openclaw-wearable-os.vercel.app).
-
----
-
-## What We Are Looking For
-
-- Developers with Zephyr RTOS or MicroPython experience
-- Anyone who has worked with Brilliant Labs Frame, Halo, or similar open glasses hardware
-- BLE/WiFi protocol engineers
-- Edge AI developers (on-device STT, TTS, local inference)
-- People who want persistent ambient intelligence and are willing to help build it
+- Agent behavior, response policy, memory systems
+- OpenClaw-specific code or imports
+- Hardcoded URLs, API keys, user config
+- Anything that only works on one machine
 
 ---
 
-## Code of Conduct
+## Adding a device profile
 
-Be straightforward. Be useful. Disagree on technical grounds. No gatekeeping.
+1. Implement the relevant HAL ABCs in `openclaw_embodiment/hal/`
+2. Add a `DeviceCapabilityVector` constant in `context_builder.py`
+3. Add a `TriggerProfile` in `openclaw_embodiment/core/trigger.py`
+4. Add the profile to the supported hardware table in `README.md`
+5. Validate on actual hardware before opening a PR -- spec-only profiles go in a separate branch
+
+Hardware validation means: `validate()` returns `True` on a real device, not just in simulation.
 
 ---
 
-*This document will grow as the project does. Check back.*
+## Code standards
+
+Comments explain why, not what. If you're writing `# increment counter`, delete it.
+
+No generic exception swallowing:
+```python
+# wrong
+except Exception as e:
+    logger.error(e)
+
+# right -- handle what you can, let the rest propagate
+except subprocess.TimeoutExpired:
+    raise RuntimeError(f"arecord timed out on {self.DEVICE}")
+```
+
+TODOs must be specific:
+```python
+# wrong
+# TODO: improve this
+
+# right
+# TODO: replace edge-density heuristic with MobileNet person detector (needs ~50MB model)
+```
+
+---
+
+## Commits
+
+Follow the format already in the log:
+
+```
+feat: BLEProximityScanner -- bleak 2.x, ProximityContext, RSSI map
+fix: arecord minimum poll is 1s, not configurable poll_duration_ms
+spec: v0.2 -- Adaptive Attention Principle
+```
+
+One thing per commit. If you're writing "and" in the subject line, split it.
+
+---
+
+## Tests
+
+Tests run without hardware. Use mock HALs for anything that touches a device. If a test requires SSH to a real device, it goes in `tests/hardware/` and is excluded from CI.
+
+---
+
+## Known issues
+
+- Duplicate commits in history (MicrophoneHal.transcribe, iOS companion, LocalMLX) -- artifact from an early merge. History is on GitHub so it stays. Don't add more.
+- OV5647 color pipeline broken on Distiller CM5 alpha unit -- `color_reliable=False` is the correct fix, not a tuning file.
+- arecord minimum effective poll: 1s regardless of configured duration.
