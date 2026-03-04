@@ -69,7 +69,7 @@ No ROS dependency. No proprietary lock-in. Six device profiles ship out of the b
 | Brilliant Labs Frame | AR glasses | BLE | Implemented (hw validation needed) | `frame-glasses` |
 | Even Realities G2 | Smart glasses | BLE dual-arm | Protocol-verified (BLE UUIDs confirmed, hw validation in progress) | `even-g2` |
 
-> **✦ Rabbit r1 note:** Rabbit Inc. officially ships OpenClaw support on r1 as a voice terminal (OTA, February 2026). The Embodiment SDK extends this with a full hardware HAL -- IMU, dual-mic array, rotating 8MP camera, and display output -- giving OpenClaw agents bidirectional hardware access beyond the official voice-only integration. The r1 serves as the reference implementation demonstrating the gap between "OpenClaw compliant" and full embodiment.
+> **✦ Rabbit r1 note:** The r1 runs OpenClaw as a voice terminal. The Embodiment SDK extends this with a full hardware HAL -- IMU, dual-mic array, rotating 8MP camera, and display output -- giving agents bidirectional hardware access beyond voice. It serves as the reference implementation for the gap between "connected device" and full embodiment.
 
 ---
 
@@ -212,19 +212,15 @@ detector = TriggerDetector(profile=REACHY_MINI_TRIGGER_PROFILE)
 
 ---
 
-## Contributing
+## Get involved
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
-
-- Open issues for bug reports and feature requests
-- PRs welcome -- new device profiles especially needed
-- Hardware validation PRs (Frame, Even G2) are a high priority
+Read [CONTRIBUTING.md](CONTRIBUTING.md). Hardware validation PRs are the highest priority -- Frame glasses and Even G2 need real-device smoke tests before they leave spec-based status.
 
 ---
 
-## License
+---
 
-Apache 2.0. See [LICENSE](LICENSE).
+Apache 2.0. [`LICENSE`](LICENSE)
 
 ---
 
