@@ -77,6 +77,16 @@ class SimulatedMicrophone(MicrophoneHal):
         n = int(self.sample_rate * (duration_ms / 1000.0) * 2)
         return AudioChunk(_ms(), self.sample_rate, self.channels, "PCM_S16LE", b"\x00" * n)
 
+    def transcribe(self, audio: AudioChunk, language: str = "en") -> str:
+        """Return mock transcript for testing."""
+        duration_s = len(audio.data) / max(1, audio.sample_rate * audio.channels * 2)
+        return f"[SIM_TRANSCRIPT lang={language} duration={duration_s:.2f}s]"
+
+    def transcribe_stream(self, stream, language: str = "en"):
+        """Streaming transcription -- yields mock partial transcripts."""
+        for i, chunk in enumerate(stream):
+            yield f"[SIM_PARTIAL_{i} lang={language}]"
+
     def shutdown(self) -> None:
         return
 
