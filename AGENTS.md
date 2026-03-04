@@ -150,8 +150,8 @@ If your task requires changing one of these, stop. Comment on the issue with wha
 
 ## A note on this file
 
-This may be the first `AGENTS.md` of its kind in an open source hardware SDK. If you're an agent reading this: the project is designed to accept your contributions thoughtfully, not uncritically. The standards here exist because agentic contribution without guardrails produces low-signal, high-noise commits that erode a codebase over time.
+The thinking behind this document was written up at [machinecommits.com](https://machinecommits.com/p/agentsmd-a-contribution-protocol). The short version: agents and humans fail differently, and a contribution protocol that only addresses human failure modes is only half a protocol.
 
-The grain linter, the atomic commit standard, the hardware validation requirement — these are not obstacles. They are what make agentic contribution sustainable at scale.
+The grain linter, the atomic commit standard, the hardware validation requirement -- these are not obstacles. They are what make agentic contribution sustainable at scale.
 
 If you find a gap in this document, note it in your `WHAT-I-DID.md`.

@@ -1,0 +1,16 @@
+# Pre-commit hooks for openclaw-embodiment
+# grain: anti-slop linter -- https://github.com/mmartoccia/grain
+#
+# Install: pip install pre-commit && pre-commit install
+#
+# Known violations: NAKED_EXCEPT is widespread in the HAL layer (hardware errors
+# are caught-and-logged rather than propagated). This is a known issue documented
+# in CONTRIBUTING.md. The hook warns but does not block on warn-only rules.
+# Run `grain check --all` to see the full violation count.
+
+repos:
+  - repo: https://github.com/mmartoccia/grain
+    rev: main
+    hooks:
+      - id: grain
+        args: [--all]
