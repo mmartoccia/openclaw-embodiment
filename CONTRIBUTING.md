@@ -83,6 +83,6 @@ Tests run without hardware. Use mock HALs for anything that touches a device. If
 
 ## Known issues
 
-- Duplicate commits in history (MicrophoneHal.transcribe, iOS companion, LocalMLX) -- artifact from an early merge. History is on GitHub so it stays. Don't add more.
+- Duplicate commits in history (MicrophoneHal.transcribe, iOS companion, LocalMLX) -- an AI agent lost session context between runs and re-committed the same work. This is exactly the failure mode AGENTS.md and grain exist to prevent. History is public so it stays. Don't add more.
 - OV5647 color pipeline broken on Distiller CM5 alpha unit -- `color_reliable=False` is the correct fix, not a tuning file.
 - arecord minimum effective poll: 1s regardless of configured duration.
