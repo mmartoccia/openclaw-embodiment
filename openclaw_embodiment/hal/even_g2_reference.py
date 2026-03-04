@@ -34,7 +34,7 @@ import asyncio
 import queue
 import struct
 import time
-from typing import Callable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
 
 from ..core.trigger import TriggerConfig
 from .base import (
@@ -48,6 +48,9 @@ from .base import (
     TransportHal,
     TransportState,
 )
+
+if TYPE_CHECKING:
+    from ..core.response import AgentResponse
 
 # ---------------------------------------------------------------------------
 # Module-level BLE UUID constants
@@ -501,6 +504,28 @@ class G2DisplayHAL(DisplayHal):
         """Send empty text to clear the display."""
         try:
             _run_async(self._send_teleprompter(""))
+        except Exception:
+            pass
+
+    def render_agent_response(self, response: "AgentResponse") -> None:
+        """Send agent response text to G2 Teleprompter display via BLE.
+
+        Routes the response content to the G2 display using the Teleprompter
+        service (0x0620) via BLE characteristic G2_WRITE_CHAR_UUID (0x5401).
+        Title from metadata (if present) is prepended to the content.
+
+        Args:
+            response: AgentResponse containing text content to display.
+        """
+        try:
+            title = response.metadata.get("title", "")
+            if title:
+                text = f"{title}\n{response.content}"
+            else:
+                text = response.content
+            # Truncate to reasonable display length for G2 Micro-LED
+            text = text[:200]
+            _run_async(self._send_teleprompter(text))
         except Exception:
             pass
 

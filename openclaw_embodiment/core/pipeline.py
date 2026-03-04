@@ -8,6 +8,7 @@ from ..context.models import AgentResponse, ContextPayload
 from ..hal.base import AudioOutputHal, CameraHal, ClassifierHal, DisplayCard, DisplayHal, IMUHal, MicrophoneHal, SendResult, TransportHal
 from ..transport.ble import PacketSerializer
 from .exceptions import ConfigurationError, IncompatibleHALError
+from .response import AgentResponseListener, DeviceResponseRouter
 from .trigger import TriggerConfig, TriggerDetector, TriggerEvent
 
 
@@ -68,7 +69,13 @@ class HALRegistry:
 class EmbodimentSDK:
     """Runtime orchestrator for trigger, capture, classify, and transport."""
 
-    def __init__(self, registry: HALRegistry, config_path: str = "config.yaml", trigger_config: Optional[TriggerConfig] = None) -> None:
+    def __init__(
+        self,
+        registry: HALRegistry,
+        config_path: str = "config.yaml",
+        trigger_config: Optional[TriggerConfig] = None,
+        response_listener: Optional[AgentResponseListener] = None,
+    ) -> None:
         self.registry = registry
         self.config_path = config_path
         self._run = False
@@ -76,9 +83,11 @@ class EmbodimentSDK:
         self._trigger_cb = []  # type: List[Callable[[TriggerEvent], None]]
         self._response_cb = []  # type: List[Callable[[AgentResponse], None]]
         self.detector = TriggerDetector(trigger_config if trigger_config is not None else TriggerConfig())
+        # Bidirectional response listener -- if not provided, auto-build from registered HALs
+        self.response_listener = response_listener  # type: Optional[AgentResponseListener]
 
     def start(self) -> None:
-        """Initialize HALs and start trigger loop thread."""
+        """Initialize HALs, register AgentResponseListener, and start trigger loop thread."""
         self.registry.validate_required()
         self.registry.imu.initialize(25)
         self.registry.camera.initialize((320, 240))
@@ -90,15 +99,26 @@ class EmbodimentSDK:
         for _, t in self.registry.transports:
             t.initialize({})
             t.connect()
+        # Auto-build response listener from registered HALs if not provided externally
+        if self.response_listener is None:
+            router = DeviceResponseRouter(
+                display_hal=self.registry.display,
+                audio_output_hal=self.registry.audio_output,
+            )
+            self.response_listener = AgentResponseListener(router=router)
+        self.response_listener.register()
         self._run = True
         self._thread = threading.Thread(target=self._run_loop, daemon=True)
         self._thread.start()
 
     def stop(self) -> None:
-        """Stop runtime and teardown HALs best-effort."""
+        """Stop runtime, deregister AgentResponseListener, and teardown HALs best-effort."""
         self._run = False
         if self._thread:
             self._thread.join(timeout=1.0)
+        # Deregister response listener before HAL teardown
+        if self.response_listener is not None:
+            self.response_listener.deregister()
         if self.registry.microphone:
             self.registry.microphone.stop_recording()
             self.registry.microphone.shutdown()
