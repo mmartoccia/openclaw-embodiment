@@ -7,3 +7,26 @@ build/
 .venv/
 .pytest_cache/
 *.egg
+
+# Test artifacts -- never commit sensor output to SDK repo
+*.jpg
+*.jpeg
+*.png
+*.wav
+*.mp3
+*.mp4
+cam_*.jpg
+distiller_cam_*.jpg
+/tmp/
+
+# Discovery output
+discovery-output/
+space-model.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Build reports
+CONTEXT_ENGINE_BUILD.md
