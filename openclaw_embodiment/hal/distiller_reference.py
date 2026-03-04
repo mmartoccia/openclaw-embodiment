@@ -366,7 +366,7 @@ class DistillerEinkDisplayHAL(DisplayHal):
     def render_agent_response(self, response: AgentResponse) -> None:
         title = response.metadata.get("title", "Agent")
         body = str(response.content)[:200]
-        self.show(DisplayCard(title=title, body=body))
+        self.show(DisplayCard(mode='text', title=title, body=body, font_size=14, duration_ms=0))
 
 
     def get_device_info(self) -> dict:
