@@ -46,6 +46,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 
+from ..transport.stt_bridge import OpenClawSTTBridge, STTProvider
 from .base import (
     ActuatorCommand,
     ActuatorHal,
@@ -313,6 +314,17 @@ class ReachyMicrophoneHAL(MicrophoneHal):
             channels=2,
             format="PCM16",
         )
+
+    def transcribe(self, audio, language: str = "en") -> str:
+        """Transcribe audio via OpenClaw native STT bridge."""
+        bridge = OpenClawSTTBridge(provider=STTProvider.OPENCLAW)
+        return bridge.transcribe(audio, language=language)
+
+    def transcribe_stream(self, stream, language: str = "en"):
+        """Streaming transcription -- yields partial transcripts as audio arrives."""
+        bridge = OpenClawSTTBridge(provider=STTProvider.OPENCLAW)
+        for chunk in stream:
+            yield bridge.transcribe(chunk, language=language)
 
     def shutdown(self) -> None:
         self.stop_recording()

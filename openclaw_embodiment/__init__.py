@@ -2,6 +2,8 @@
 
 from .core.pipeline import HALRegistry, EmbodimentSDK, WearableSDK
 from .context.models import AgentResponse, ContextPayload
+from .hal.base import AudioChunk
+from .transport.stt_bridge import OpenClawSTTBridge, STTProvider
 from .profiles.ios_companion import (
     iOSCompanionProfile,
     iOSCompanionReceiver,
@@ -21,4 +23,8 @@ __all__ = [
     "iOSCompanionProfile",
     "iOSCompanionReceiver",
     "iOSSensorPayload",
+    # STT bridge
+    "AudioChunk",
+    "OpenClawSTTBridge",
+    "STTProvider",
 ]

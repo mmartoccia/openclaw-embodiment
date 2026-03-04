@@ -30,6 +30,7 @@ from .base import DisplayCard, DisplayHal
 from .base import IMUHal, IMUSample
 from .base import AudioChunk, MicrophoneHal
 from .base import SendResult, TransportHal, TransportState
+from ..transport.stt_bridge import OpenClawSTTBridge, STTProvider
 
 
 logger = logging.getLogger(__name__)
@@ -296,7 +297,8 @@ class PiCamera(CameraHal):
 class PiMicrophone(MicrophoneHal):
     HAL_VERSION = "1.0.0"
 
-    def __init__(self) -> None:
+    def __init__(self, stt_provider: STTProvider = STTProvider.OPENCLAW) -> None:
+        self._stt_bridge = OpenClawSTTBridge(provider=stt_provider)
         self._lock = threading.RLock()
         self._initialized = False
         self._recording = False
@@ -402,6 +404,15 @@ class PiMicrophone(MicrophoneHal):
             format="PCM_S16LE",
             data=data,
         )
+
+    def transcribe(self, audio: AudioChunk, language: str = "en") -> str:
+        """Transcribe audio via OpenClaw native STT bridge."""
+        return self._stt_bridge.transcribe(audio, language=language)
+
+    def transcribe_stream(self, stream, language: str = "en"):
+        """Streaming transcription -- yields partial transcripts as audio arrives."""
+        for chunk in stream:
+            yield self.transcribe(chunk, language=language)
 
     def shutdown(self) -> None:
         with self._lock:

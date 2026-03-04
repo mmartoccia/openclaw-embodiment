@@ -37,6 +37,7 @@ import time
 from typing import Callable, List, Optional, Tuple
 
 from ..core.trigger import TriggerConfig
+from ..transport.stt_bridge import OpenClawSTTBridge, STTProvider
 from .base import (
     AudioChunk,
     DisplayCard,
@@ -429,6 +430,17 @@ class G2MicrophoneHAL(MicrophoneHal):
     def get_doa(self) -> None:
         """Single microphone array -- Direction of Arrival not supported."""
         return None
+
+    def transcribe(self, audio, language: str = "en") -> str:
+        """Transcribe audio via OpenClaw native STT bridge."""
+        bridge = OpenClawSTTBridge(provider=STTProvider.OPENCLAW)
+        return bridge.transcribe(audio, language=language)
+
+    def transcribe_stream(self, stream, language: str = "en"):
+        """Streaming transcription -- yields partial transcripts as audio arrives."""
+        bridge = OpenClawSTTBridge(provider=STTProvider.OPENCLAW)
+        for chunk in stream:
+            yield bridge.transcribe(chunk, language=language)
 
     def shutdown(self) -> None:
         self.stop_recording()

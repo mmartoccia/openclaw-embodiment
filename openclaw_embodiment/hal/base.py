@@ -170,6 +170,20 @@ class MicrophoneHal(HALBase, ABC):
         return None
 
     @abstractmethod
+    def transcribe(self, audio: AudioChunk, language: str = "en") -> str:
+        """Transcribe audio via OpenClaw native STT bridge.
+
+        Delegates to: openclaw stt transcribe (api.runtime.stt.transcribeAudioFile)
+        Returns: transcribed text string
+        """
+        ...
+
+    @abstractmethod
+    def transcribe_stream(self, stream: Iterator[AudioChunk]) -> Iterator[str]:
+        """Streaming transcription -- yields partial transcripts as audio arrives."""
+        ...
+
+    @abstractmethod
     def shutdown(self) -> None:
         """Shutdown microphone."""
 

@@ -36,9 +36,14 @@ Usage:
 
 from __future__ import annotations
 
+import logging
 from typing import Dict, Tuple
 
 from ..core.trigger import TriggerConfig
+from ..hal.base import AudioChunk
+from ..transport.stt_bridge import STTProvider
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Re-export Pi3 HAL classes under Zero 2W aliases
@@ -46,9 +51,32 @@ from ..core.trigger import TriggerConfig
 # ---------------------------------------------------------------------------
 from .pi3_reference import (
     PiCamera as PiZero2WCameraHAL,
-    PiMicrophone as PiZero2WMicrophoneHAL,
+    PiMicrophone as _PiMicrophone,
     PiBLETransport as PiZero2WTransportHAL,
 )
+
+
+class PiZero2WMicrophoneHAL(_PiMicrophone):
+    """Performance-constrained microphone HAL for Pi Zero 2W.
+
+    Delegates transcribe() to OpenClawSTTBridge with a warning that STT
+    is CPU-intensive on the Zero 2W -- prefer offloading to the host.
+    """
+
+    def transcribe(self, audio: AudioChunk, language: str = "en") -> str:
+        """Transcribe audio via OpenClaw native STT bridge.
+
+        WARNING: Pi Zero 2W is CPU-constrained (512MB RAM, 1GHz quad-core).
+        STT is offloaded to the OpenClaw runtime subprocess. For high-throughput
+        use cases, consider streaming audio to the host instead.
+        """
+        logger.warning(
+            "PiZero2WMicrophoneHAL.transcribe() called -- "
+            "STT offloaded to OpenClaw runtime (subprocess). "
+            "Pi Zero 2W is CPU-constrained; consider host-side STT for low-latency pipelines."
+        )
+        return super().transcribe(audio, language=language)
+
 
 __all__ = [
     "PiZero2WCameraHAL",
