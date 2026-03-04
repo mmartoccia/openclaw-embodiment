@@ -45,6 +45,7 @@ class DistillerMicrophoneHAL(MicrophoneHal):
     """Captures audio from the Pamir AI SoundCard (hw:0,0)."""
 
     DEVICE = "hw:0,0"
+    SDK_SRC = "/opt/distiller-sdk/src"
     SAMPLE_RATE = 48000
     CHANNELS = 2
     FORMAT = "S16_LE"
@@ -87,6 +88,68 @@ class DistillerMicrophoneHAL(MicrophoneHal):
             raise
         finally:
             os.unlink(tmp)
+
+
+    def get_device_info(self) -> dict:
+        return {
+            "name": "Pamir AI SoundCard",
+            "device": self.DEVICE,
+            "sample_rate": self.SAMPLE_RATE,
+            "channels": self.CHANNELS,
+            "format": self.FORMAT,
+        }
+
+    def start_recording(self) -> None:
+        """Start continuous recording (background arecord process)."""
+        import threading
+        self._recording = True
+        self._record_buf: list = []
+        def _record():
+            import time
+            while getattr(self, "_recording", False):
+                try:
+                    chunk = self.capture(duration_ms=1000)
+                    self._record_buf.append(chunk)
+                    if len(self._record_buf) > 60:
+                        self._record_buf.pop(0)
+                except Exception:
+                    pass
+        self._record_thread = threading.Thread(target=_record, daemon=True)
+        self._record_thread.start()
+
+    def stop_recording(self) -> None:
+        self._recording = False
+
+    def get_buffer(self, duration_ms: int) -> "AudioChunk":
+        """Return captured audio from rolling buffer."""
+        return self.capture(duration_ms=duration_ms)
+
+    def transcribe(self, audio: "AudioChunk", language: str = "en") -> str:
+        """Transcribe using distiller_sdk whisper if available, else empty."""
+        try:
+            sys.path.insert(0, self.SDK_SRC if hasattr(self, "SDK_SRC") else "/opt/distiller-sdk/src")
+            from distiller_sdk.whisper.fast_whisper import FastWhisper  # type: ignore
+            import tempfile, os
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                tmp = f.name
+            import wave as _wave
+            with _wave.open(tmp, "wb") as w:
+                w.setnchannels(audio.channels)
+                w.setsampwidth(2)
+                w.setframerate(audio.sample_rate)
+                w.writeframes(audio.data)
+            result = FastWhisper().transcribe(tmp, language=language)
+            os.unlink(tmp)
+            return result
+        except Exception as e:
+            logger.debug("[DistillerMic] transcribe unavailable: %s", e)
+            return ""
+
+    def transcribe_stream(self, stream) -> "Iterator[str]":
+        for chunk in stream:
+            text = self.transcribe(chunk)
+            if text:
+                yield text
 
     def shutdown(self) -> None:
         pass
