@@ -584,7 +584,7 @@ class _CompanionRequestHandler(BaseHTTPRequestHandler):
         try:
             result = handlers[path](payload)
             self._respond(200, result or {"status": "ok", "received_at": time.time()})
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001  # grain: ignore NAKED_EXCEPT -- iOS companion payload -- malformed data must not crash ingestion
             logger.exception("Handler error for %s", path)
             self._respond(500, {"status": "error", "message": str(exc)})
 

@@ -220,7 +220,7 @@ class ContextBuilder:
                 language=None,
                 confidence=round(confidence, 3),
             )
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- sensor context build -- one bad sensor must not crash the pipeline
             logger.warning("[ContextBuilder] Audio build failed: %s", e)
             return None
 
@@ -264,7 +264,7 @@ class ContextBuilder:
                 frame_path=frame_path,
                 confidence=round(confidence, 3),
             )
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- sensor context build -- one bad sensor must not crash the pipeline
             logger.warning("[ContextBuilder] Visual build failed: %s", e)
             return None
 
@@ -282,7 +282,7 @@ class ContextBuilder:
                 rssi_map=ble_result.rssi_map,
                 confidence=ble_result.confidence,
             )
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- sensor context build -- one bad sensor must not crash the pipeline
             logger.warning("[ContextBuilder] Proximity build failed: %s", e)
             return None
 

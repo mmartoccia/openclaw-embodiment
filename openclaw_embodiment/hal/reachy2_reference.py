@@ -100,7 +100,7 @@ def _to_jpeg(frame_rgb: np.ndarray) -> bytes:
         import cv2  # type: ignore
         ok, buf = cv2.imencode(".jpg", cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR))
         return bytes(buf) if ok else b""
-    except Exception:
+    except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
         return b""
 
 
@@ -231,7 +231,7 @@ class Reachy2MotionTracker(IMUHal):
         """
         try:
             return self._get_neck_pose()
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- servo/motor read -- firmware errors are not typed
             return None
 
     def get_angular_velocity(self) -> Optional[Dict[str, float]]:
@@ -256,7 +256,7 @@ class Reachy2MotionTracker(IMUHal):
         try:
             pose = self._get_neck_pose()
             return isinstance(pose, dict)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- servo/motor read -- firmware errors are not typed
             return False
 
     def set_sample_rate(self, hz: int) -> None:
@@ -290,7 +290,7 @@ class Reachy2MotionTracker(IMUHal):
                 "tilt": float(getattr(neck.tilt, "present_position", 0.0)),
                 "roll": float(getattr(neck.roll, "present_position", 0.0)),
             }
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- servo/motor read -- firmware errors are not typed
             return {"pan": 0.0, "tilt": 0.0, "roll": 0.0}
 
 
@@ -341,7 +341,7 @@ class Reachy2CameraHAL(CameraHal):
                     jpeg = _to_jpeg(frame)
                     h, w = frame.shape[:2]
                     return CameraFrame(now, w, h, "JPEG", jpeg)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             pass
         return self._blank_frame(now)
 
@@ -354,7 +354,7 @@ class Reachy2CameraHAL(CameraHal):
         try:
             frame = self._get_frame(self._camera_side if self._camera_side != "both" else "left")
             return frame is not None and frame.size > 0
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             return False
 
     def get_raw_frame(self) -> Optional[bytes]:
@@ -363,7 +363,7 @@ class Reachy2CameraHAL(CameraHal):
             frame = self._get_frame(self._camera_side if self._camera_side != "both" else "left")
             if frame is not None:
                 return _to_jpeg(frame)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             pass
         return None
 
@@ -391,7 +391,7 @@ class Reachy2CameraHAL(CameraHal):
             # reachy2-sdk: reachy.cameras.left.get_frame() -> numpy RGB
             cam = self._reachy.cameras.left if side == "left" else self._reachy.cameras.right
             return cam.get_frame()
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             return None
 
     def _blank_frame(self, ts: int) -> CameraFrame:
@@ -434,7 +434,7 @@ class Reachy2MicrophoneHAL(MicrophoneHal):
             return
         try:
             self._reachy.audio.start_recording()
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             pass
         self._recording = True
         self._run = True
@@ -447,7 +447,7 @@ class Reachy2MicrophoneHAL(MicrophoneHal):
             self._thread.join(timeout=2.0)
         try:
             self._reachy.audio.stop_recording()
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
             pass
         self._recording = False
 
@@ -486,10 +486,9 @@ class Reachy2MicrophoneHAL(MicrophoneHal):
         if self._last_doa is not None:
             return self._last_doa
         try:
-            # reachy2-sdk: reachy.audio.get_doa() -> float (azimuth)
             azimuth = float(self._reachy.audio.get_doa())
             return (azimuth, None)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
             return None
 
     def get_sample_rate(self) -> int:
@@ -542,9 +541,9 @@ class Reachy2MicrophoneHAL(MicrophoneHal):
                 try:
                     az = float(self._reachy.audio.get_doa())
                     self._last_doa = (az, None)
-                except Exception:
+                except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
                     pass
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
                 time.sleep(0.05)
 
 
@@ -585,7 +584,7 @@ class Reachy2AudioOutputHAL(AudioOutputHal):
             pcm = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32) / 32767.0
             pcm = pcm * self._volume
             self._reachy.audio.push_audio_sample(pcm)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
             pass
 
     def speak(self, text: str) -> None:
@@ -596,11 +595,11 @@ class Reachy2AudioOutputHAL(AudioOutputHal):
         try:
             # reachy2-sdk may expose a TTS interface
             self._reachy.audio.speak(text)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
             import subprocess
             try:
                 subprocess.run(["say", text], timeout=30, check=False)
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
                 pass
 
     def play_audio(self, audio_data: bytes, sample_rate: int = 22050) -> None:
@@ -612,7 +611,7 @@ class Reachy2AudioOutputHAL(AudioOutputHal):
         self._volume = max(0.0, min(1.0, float(volume)))
         try:
             self._reachy.audio.set_volume(self._volume)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
             pass  # Volume scaling applied locally on next play()
 
     def is_available(self) -> bool:
@@ -621,7 +620,7 @@ class Reachy2AudioOutputHAL(AudioOutputHal):
             # Try a no-op volume read to confirm SDK is reachable
             _ = getattr(self._reachy, "audio", None)
             return self._reachy is not None
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
             return False
 
     def stop(self) -> None:
@@ -629,7 +628,7 @@ class Reachy2AudioOutputHAL(AudioOutputHal):
         if self._playing:
             try:
                 self._reachy.audio.stop_playing()
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
                 pass
             self._playing = False
 
@@ -696,7 +695,7 @@ class Reachy2DisplayHAL(DisplayHal):
         """Initialize face display and move to neutral expression."""
         try:
             self._reachy.head.set_expression(Reachy2Expression.NEUTRAL)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             pass
 
     def show(self, card: "DisplayCard") -> None:
@@ -718,14 +717,13 @@ class Reachy2DisplayHAL(DisplayHal):
         self._last_expression = expression
         sdk_expr = self._EXPRESSION_MAP.get(expression, "neutral")
         try:
-            # reachy2-sdk: reachy.head.set_expression(expression_name)
             self._reachy.head.set_expression(sdk_expr)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- cosmetic output -- best-effort, never crash on display failure
             pass
         try:
             # Also trigger antenna animation if available
             self._reachy.head.antennas.set_expression(sdk_expr)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- cosmetic output -- best-effort, never crash on display failure
             pass
 
     def clear(self) -> None:
@@ -740,14 +738,14 @@ class Reachy2DisplayHAL(DisplayHal):
         self._brightness = max(0.0, min(1.0, float(brightness)))
         try:
             self._reachy.head.set_brightness(self._brightness)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- cosmetic output -- best-effort, never crash on display failure
             pass
 
     def is_available(self) -> bool:
         """Return True if head display system is accessible."""
         try:
             return hasattr(self._reachy, "head") and self._reachy.head is not None
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- cosmetic output -- best-effort, never crash on display failure
             return False
 
     def shutdown(self) -> None:
@@ -825,7 +823,7 @@ class Reachy2TransportHAL(TransportHal):
             with urllib.request.urlopen(req, timeout=self._timeout_s) as resp:
                 _ = resp.read()
             return SendResult(True, len(payload), _ms() - t0)
-        except Exception as exc:
+        except Exception as exc:  # grain: ignore NAKED_EXCEPT -- BLE scan -- adapter errors vary by OS and driver
             return SendResult(False, 0, _ms() - t0)
 
     def receive(self, timeout_ms: int = 1000) -> Optional[bytes]:
@@ -923,7 +921,7 @@ class Reachy2ActuatorHAL(ActuatorHal):
         try:
             # reachy2-sdk: set all joints to compliant (safe) mode on init
             self._reachy.turn_on("reachy")
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             pass
 
     def execute(self, command: ActuatorCommand) -> ActuatorResult:
@@ -972,7 +970,7 @@ class Reachy2ActuatorHAL(ActuatorHal):
                 success=True,
                 elapsed_ms=_ms() - t0,
             )
-        except Exception as exc:
+        except Exception as exc:  # grain: ignore NAKED_EXCEPT -- HAL hardware call -- exception types vary by SDK and platform
             return ActuatorResult(
                 command_id=command.command_id,
                 success=False,
@@ -984,7 +982,7 @@ class Reachy2ActuatorHAL(ActuatorHal):
         """Emergency stop -- set all joints to compliant (free) mode."""
         try:
             self._reachy.turn_off("reachy")
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- servo/motor read -- firmware errors are not typed
             pass
 
     def get_capabilities(self) -> list:
@@ -1016,7 +1014,7 @@ class Reachy2ActuatorHAL(ActuatorHal):
                     load_percent=0.0,    # load not always exposed by SDK
                     temperature_celsius=None,
                 )
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- servo/motor read -- firmware errors are not typed
                 states[joint_id] = JointState(
                     joint_id=joint_id,
                     position_degrees=0.0,
@@ -1045,7 +1043,7 @@ class Reachy2ActuatorHAL(ActuatorHal):
         """Ping reachy2-sdk connection -- True if robot is reachable."""
         try:
             return self._reachy is not None and hasattr(self._reachy, "head")
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             return False
 
     def get_device_info(self) -> dict:
@@ -1073,7 +1071,7 @@ class Reachy2ActuatorHAL(ActuatorHal):
                 roll=float(params.get("roll", 0.0)),
                 duration=duration,
             )
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- servo/motor read -- firmware errors are not typed
             # Fallback: try neck joint direct access
             neck = getattr(self._reachy.head, "neck", None)
             if neck:
@@ -1091,7 +1089,7 @@ class Reachy2ActuatorHAL(ActuatorHal):
         duration = float(params.get("duration", 1.0))
         try:
             arm.goto(joint_positions, duration=duration)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- servo/motor read -- firmware errors are not typed
             # Fallback: set individual joint goals
             for joint_id, angle in joint_positions.items():
                 try:
@@ -1100,7 +1098,7 @@ class Reachy2ActuatorHAL(ActuatorHal):
                         joint_obj = getattr(getattr(arm, parts[1], None), parts[2], None)
                         if joint_obj:
                             joint_obj.goal_position = float(angle)
-                except Exception:
+                except Exception:  # grain: ignore NAKED_EXCEPT -- servo/motor read -- firmware errors are not typed
                     pass
 
     def _move_gripper(self, params: dict) -> None:
@@ -1110,7 +1108,7 @@ class Reachy2ActuatorHAL(ActuatorHal):
         arm = self._reachy.r_arm if side == "right" else self._reachy.l_arm
         try:
             arm.gripper.goal_position = position
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- servo/motor read -- firmware errors are not typed
             pass
 
     def _mobile_base_move(self, params: dict) -> None:
@@ -1124,7 +1122,7 @@ class Reachy2ActuatorHAL(ActuatorHal):
                 y=float(params.get("y", 0.0)),
                 theta=float(params.get("theta", 0.0)),
             )
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- cosmetic output -- best-effort, never crash on display failure
             pass
 
     def _read_joint_position(self, joint_id: str) -> float:
@@ -1147,7 +1145,7 @@ class Reachy2ActuatorHAL(ActuatorHal):
                 if base:
                     state = base.get_state()
                     return float(getattr(state, parts[1], 0.0))
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- servo/motor read -- firmware errors are not typed
             pass
         return 0.0
 

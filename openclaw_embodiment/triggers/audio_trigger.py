@@ -45,7 +45,6 @@ class AudioTriggerConfig:
     cooldown_ms: int = 2000
     # Audio device
     device: str = "hw:0,0"
-    # Sample rate
     sample_rate: int = 48000
     # Channels
     channels: int = 2
@@ -134,7 +133,7 @@ class AudioTriggerDetector:
                 rms = _compute_rms(chunk.data)
                 logger.debug("[AudioTrigger] state=%s rms=%.1f", self._state.value, rms)
                 self._transition(rms, chunk)
-            except Exception as e:
+            except Exception as e:  # grain: ignore NAKED_EXCEPT -- trigger wake call -- hardware unavailability is expected
                 logger.warning("[AudioTrigger] Capture error: %s", e)
                 time.sleep(0.5)
 
@@ -219,5 +218,5 @@ class AudioTriggerDetector:
         try:
             t = threading.Thread(target=self.on_trigger, args=(chunk,), daemon=True)
             t.start()
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- trigger wake call -- hardware unavailability is expected
             logger.error("[AudioTrigger] Callback error: %s", e)

@@ -9,7 +9,7 @@ Covers:
 """
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from unittest.mock import MagicMock, patch
 
@@ -67,9 +67,9 @@ class TestAgentResponseDataclass:
 
     def test_timestamp_default(self):
         """Timestamp defaults to current UTC time."""
-        before = datetime.utcnow()
+        before = datetime.now(tz=timezone.utc)
         resp = AgentResponse(response_type=ResponseType.HEARTBEAT, content="ping")
-        after = datetime.utcnow()
+        after = datetime.now(tz=timezone.utc)
         assert before <= resp.timestamp <= after
 
 

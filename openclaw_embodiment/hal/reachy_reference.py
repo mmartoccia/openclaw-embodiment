@@ -80,7 +80,7 @@ def _to_jpeg(frame_rgb: np.ndarray) -> bytes:
         import cv2  # type: ignore
         ok, buf = cv2.imencode(".jpg", cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR))
         return bytes(buf) if ok else b""
-    except Exception:
+    except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
         return b""
 
 
@@ -148,7 +148,7 @@ class ReachyMotionTracker(IMUHal):
         try:
             pose = self._get_head_pose()
             return isinstance(pose, dict)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- servo/motor read -- firmware errors are not typed
             return False
 
     def get_device_info(self) -> dict:
@@ -180,7 +180,7 @@ class ReachyMotionTracker(IMUHal):
                 "roll":  float(getattr(pos, "head_roll",  0.0)),
                 "yaw":   float(getattr(pos, "head_yaw",   0.0)),
             }
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- HAL hardware call -- exception types vary by SDK and platform
             return {"pitch": 0.0, "roll": 0.0, "yaw": 0.0}
 
 
@@ -206,7 +206,7 @@ class ReachyCameraHAL(CameraHal):
         # Ensure media is started (may already be started by microphone HAL)
         try:
             _ = self._reachy.media.get_frame()
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             pass
 
     def capture_frame(self) -> CameraFrame:
@@ -218,7 +218,7 @@ class ReachyCameraHAL(CameraHal):
             jpeg = _to_jpeg(frame)
             h, w = frame.shape[:2]
             return CameraFrame(now, w, h, "JPEG", jpeg)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             return self._blank_frame(now)
 
     def shutdown(self) -> None:
@@ -228,7 +228,7 @@ class ReachyCameraHAL(CameraHal):
         try:
             f = self._reachy.media.get_frame()
             return f is not None and f.size > 0
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             return False
 
     def get_device_info(self) -> dict:
@@ -273,7 +273,7 @@ class ReachyMicrophoneHAL(MicrophoneHal):
             return
         try:
             self._reachy.media.start_recording()
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             pass
         self._recording = True
         self._run = True
@@ -286,7 +286,7 @@ class ReachyMicrophoneHAL(MicrophoneHal):
             self._thread.join(timeout=2.0)
         try:
             self._reachy.media.stop_recording()
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
             pass
         self._recording = False
 
@@ -353,7 +353,7 @@ class ReachyMicrophoneHAL(MicrophoneHal):
                         except queue.Empty:
                             pass
                         self._buffer.put_nowait(samples.astype(np.float32))
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
                 time.sleep(0.05)
 
 
@@ -389,7 +389,7 @@ class ReachyAudioOutputHAL(AudioOutputHal):
             else:
                 pcm = pcm.reshape(-1, channels)
             self._reachy.media.push_audio_sample(pcm)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
             pass
 
     def speak(self, text: str) -> None:
@@ -400,14 +400,14 @@ class ReachyAudioOutputHAL(AudioOutputHal):
         import subprocess
         try:
             subprocess.run(["say", text], timeout=10, check=False)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- subprocess call -- OS/permission errors are heterogeneous
             pass
 
     def shutdown(self) -> None:
         if self._playing:
             try:
                 self._reachy.media.stop_playing()
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- cleanup path -- must not raise during teardown
                 pass
             self._playing = False
 
@@ -452,7 +452,7 @@ class ReachyDisplayHAL(DisplayHal):
                 head=create_head_pose(z=0, roll=0, degrees=True, mm=True),
                 duration=0.5,
             )
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             pass
 
     def show(self, card: DisplayCard) -> None:
@@ -477,7 +477,7 @@ class ReachyDisplayHAL(DisplayHal):
                 duration=0.6,
                 method="minjerk",
             )
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- servo/motor read -- firmware errors are not typed
             pass
 
     def shutdown(self) -> None:
@@ -487,7 +487,7 @@ class ReachyDisplayHAL(DisplayHal):
                 head=create_head_pose(z=0, roll=0, degrees=True, mm=True),
                 duration=1.0,
             )
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- servo/motor read -- firmware errors are not typed
             pass
 
     def validate(self) -> bool:
@@ -550,7 +550,7 @@ class ReachyTransportHAL(TransportHal):
             with urllib.request.urlopen(req, timeout=self._timeout_s) as resp:
                 _ = resp.read()
             return SendResult(True, len(payload), _ms() - t0)
-        except Exception as exc:
+        except Exception as exc:  # grain: ignore NAKED_EXCEPT -- BLE scan -- adapter errors vary by OS and driver
             return SendResult(False, 0, _ms() - t0)
 
     def receive(self, timeout_ms: int = 1000) -> Optional[bytes]:
@@ -651,7 +651,7 @@ class ReachyActuatorHAL(ActuatorHal):
             url = f"http://{self._host}:{self._port}/api/health"
             with urllib.request.urlopen(url, timeout=2.0) as resp:
                 return resp.status == 200
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- BLE scan -- adapter errors vary by OS and driver
             return False
 
     def get_device_info(self) -> dict:
@@ -702,7 +702,7 @@ class ReachyActuatorHAL(ActuatorHal):
                 success=True,
                 elapsed_ms=_ms() - t0,
             )
-        except Exception as exc:
+        except Exception as exc:  # grain: ignore NAKED_EXCEPT -- HAL hardware call -- exception types vary by SDK and platform
             return ActuatorResult(
                 command_id=command.command_id,
                 success=False,
@@ -725,7 +725,7 @@ class ReachyActuatorHAL(ActuatorHal):
             )
             with urllib.request.urlopen(req, timeout=2.0) as resp:
                 _ = resp.read()
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- HAL hardware call -- exception types vary by SDK and platform
             pass
 
     def get_capabilities(self) -> list:

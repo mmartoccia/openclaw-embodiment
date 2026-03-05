@@ -202,7 +202,7 @@ class DiscoveryLoop:
                 self._mic_hal.initialize()
                 self._sensor_health["mic"] = "ok"
                 logger.info("[DiscoveryLoop] Microphone initialized.")
-            except Exception as e:
+            except Exception as e:  # grain: ignore NAKED_EXCEPT -- discovery loop iteration -- one cycle failure must not stop the daemon
                 logger.warning("[DiscoveryLoop] Mic init failed: %s", e)
                 self._sensor_health["mic"] = "failed"
         else:
@@ -216,7 +216,7 @@ class DiscoveryLoop:
                 self._camera_hal = DistillerCameraHAL()
                 self._sensor_health["camera"] = "color_unreliable"  # known OV5647 issue
                 logger.info("[DiscoveryLoop] Camera initialized (grayscale mode).")
-            except Exception as e:
+            except Exception as e:  # grain: ignore NAKED_EXCEPT -- discovery loop iteration -- one cycle failure must not stop the daemon
                 logger.warning("[DiscoveryLoop] Camera init failed: %s", e)
                 self._sensor_health["camera"] = "failed"
         else:
@@ -233,7 +233,7 @@ class DiscoveryLoop:
                 )
                 self._sensor_health["ble"] = "ok"
                 logger.info("[DiscoveryLoop] BLE scanner initialized.")
-            except Exception as e:
+            except Exception as e:  # grain: ignore NAKED_EXCEPT -- discovery loop iteration -- one cycle failure must not stop the daemon
                 logger.warning("[DiscoveryLoop] BLE scanner init failed: %s", e)
                 self._sensor_health["ble"] = "failed"
         else:
@@ -392,7 +392,7 @@ class DiscoveryLoop:
                 len(result.known_devices), result.unknown_count, result.confidence
             )
             return result
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- discovery loop iteration -- one cycle failure must not stop the daemon
             logger.warning("[DiscoveryLoop] BLE scan error: %s", e)
             self._space_model.log_discovery("SENSOR_ERROR", f"BLE scan failed: {e}", confidence=0.5)
             return None
@@ -436,7 +436,7 @@ class DiscoveryLoop:
             logger.debug("[DiscoveryLoop] Audio: rms=%.0f ambient=%s", rms, ambient)
             return ctx
 
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- discovery loop iteration -- one cycle failure must not stop the daemon
             logger.warning("[DiscoveryLoop] Audio sample error: %s", e)
             self._space_model.log_discovery("SENSOR_ERROR", f"Audio capture failed: {e}", confidence=0.5)
             return None
@@ -451,7 +451,7 @@ class DiscoveryLoop:
             person_count = None
             try:
                 person_count = self._camera_hal.estimate_person_count()
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- report build -- partial data must not crash the loop
                 pass
 
             # Compute mean pixel value from JPEG bytes (rough estimate)
@@ -461,7 +461,7 @@ class DiscoveryLoop:
                 img = Image.open(io.BytesIO(jpeg_bytes)).convert("L")
                 pixels = list(img.getdata())
                 mean_px = sum(pixels) / len(pixels) if pixels else 128.0
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- report build -- partial data must not crash the loop
                 mean_px = 128.0  # default
 
             # Compute diff from baseline
@@ -487,7 +487,7 @@ class DiscoveryLoop:
             )
             return ctx, diff_score
 
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- discovery loop iteration -- one cycle failure must not stop the daemon
             logger.warning("[DiscoveryLoop] Camera capture error: %s", e)
             self._space_model.log_discovery("SENSOR_ERROR", f"Camera capture failed: {e}", confidence=0.5)
             return None, 0.0
@@ -552,7 +552,7 @@ class DiscoveryLoop:
                 device_capabilities=DISTILLER_CM5_CAPABILITIES,
             )
 
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- discovery loop iteration -- one cycle failure must not stop the daemon
             logger.error("[DiscoveryLoop] Context assembly error: %s", e)
             return None
 
@@ -599,7 +599,7 @@ class DiscoveryLoop:
                 filepath = report.save_to_file(self.output_dir)
                 logger.info("[DiscoveryLoop] Report written: %s", filepath)
 
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- gateway POST -- network errors are heterogeneous
             logger.error("[DiscoveryLoop] Report push failed: %s", e)
 
     def _post_to_gateway(self, payload: Dict[str, Any]) -> None:
@@ -623,14 +623,14 @@ class DiscoveryLoop:
                     from openclaw_embodiment.discovery.discovery_report import DiscoveryReport
                     import datetime
                     os.makedirs(self.output_dir, exist_ok=True)
-                    ts = datetime.datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S")
+                    ts = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
                     filepath = os.path.join(self.output_dir, f"{ts}.json")
                     with open(filepath, "w") as f:
                         json.dump(payload, f, indent=2)
                     logger.info("[DiscoveryLoop] Saved locally: %s", filepath)
-                except Exception as fe:
+                except Exception as fe:  # grain: ignore NAKED_EXCEPT -- local file save fallback -- must not lose the primary error
                     logger.error("[DiscoveryLoop] Local save also failed: %s", fe)
-            except Exception as e:
+            except Exception as e:  # grain: ignore NAKED_EXCEPT -- local file save fallback -- must not lose the primary error
                 logger.error("[DiscoveryLoop] POST error: %s", e)
 
         # Non-blocking fire and forget
@@ -648,7 +648,7 @@ class DiscoveryLoop:
             self._push_report(triggered_by="final")
             # Give async POST time to complete
             time.sleep(2)
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- gateway POST -- network errors are heterogeneous
             logger.error("[DiscoveryLoop] Finalize error: %s", e)
 
         duration_s = int((time.time() * 1000 - self._start_ms) / 1000)

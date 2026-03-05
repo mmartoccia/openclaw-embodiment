@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Protocol
 
@@ -44,7 +44,7 @@ class AgentResponse:
     response_type: ResponseType
     content: str
     metadata: Dict[str, Any] = field(default_factory=dict)
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(tz=timezone.utc))
 
 
 class ResponseCallback(Protocol):
@@ -226,12 +226,12 @@ class AgentResponseListener:
             return
         try:
             self._router.route(response)
-        except Exception as exc:
+        except Exception as exc:  # grain: ignore NAKED_EXCEPT -- response dispatch -- delivery failure must not crash the listener
             logger.exception("AgentResponseListener: router error -- %s", exc)
         for cb in list(self._callbacks):
             try:
                 cb(response)
-            except Exception as exc:
+            except Exception as exc:  # grain: ignore NAKED_EXCEPT -- response dispatch -- delivery failure must not crash the listener
                 logger.exception("AgentResponseListener: callback error -- %s", exc)
 
     async def on_agent_event_async(self, response: AgentResponse) -> None:

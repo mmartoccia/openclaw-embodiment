@@ -120,7 +120,7 @@ class DistillerContextLoop:
             hal.initialize()
             logger.info("[ContextLoop] Mic HAL initialized.")
             return hal
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- context loop resilience -- one bad read must not stop the daemon
             logger.warning("[ContextLoop] Mic HAL unavailable: %s", e)
             return None
 
@@ -132,7 +132,7 @@ class DistillerContextLoop:
             logger.info("[ContextLoop] Camera HAL initialized (color_reliable=%s).",
                         hal.color_reliable)
             return hal
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- context loop resilience -- one bad read must not stop the daemon
             logger.warning("[ContextLoop] Camera HAL unavailable: %s", e)
             return None
 
@@ -143,7 +143,7 @@ class DistillerContextLoop:
             hal.initialize()
             logger.info("[ContextLoop] E-ink display HAL initialized.")
             return hal
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- context loop resilience -- one bad read must not stop the daemon
             logger.warning("[ContextLoop] Display HAL unavailable: %s", e)
             return None
 
@@ -154,7 +154,7 @@ class DistillerContextLoop:
             hal.initialize()
             logger.info("[ContextLoop] Audio output HAL initialized.")
             return hal
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- context loop resilience -- one bad read must not stop the daemon
             logger.warning("[ContextLoop] Audio output HAL unavailable: %s", e)
             return None
 
@@ -165,7 +165,7 @@ class DistillerContextLoop:
             logger.info("[ContextLoop] BLE scanner initialized (%d known devices).",
                         len(known_map))
             return scanner
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- context loop resilience -- one bad read must not stop the daemon
             logger.warning("[ContextLoop] BLE scanner unavailable: %s", e)
             return None
 
@@ -191,7 +191,7 @@ class DistillerContextLoop:
                 logger.warning("[ContextLoop] No response from gateway.")
                 self._render_local_fallback(ctx)
 
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- context loop resilience -- one bad read must not stop the daemon
             logger.error("[ContextLoop] Trigger handler error: %s", e, exc_info=True)
 
     # ------------------------------------------------------------------
@@ -214,7 +214,7 @@ class DistillerContextLoop:
                 return data.get("response") or data.get("text") or str(data)
         except urllib.error.URLError as e:
             logger.warning("[ContextLoop] Gateway unreachable (%s): %s", url, e)
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- context loop resilience -- one bad read must not stop the daemon
             logger.error("[ContextLoop] Gateway POST error: %s", e)
         return None
 
@@ -269,7 +269,7 @@ class DistillerContextLoop:
                     font_size=12,
                     duration_ms=0,
                 ))
-            except Exception as e:
+            except Exception as e:  # grain: ignore NAKED_EXCEPT -- context loop resilience -- one bad read must not stop the daemon
                 logger.warning("[ContextLoop] Display fallback failed: %s", e)
 
     # ------------------------------------------------------------------

@@ -170,7 +170,6 @@ class TestiOSSensorPayload:
         assert p.data["latitude"] == 37.77
 
     def test_all_valid_sensor_types_pass_validation(self):
-        """All documented sensor types pass validation."""
         for sensor_type in ("imu", "camera", "audio", "location", "battery"):
             p = iOSSensorPayload(
                 device_id=DEVICE_ID,

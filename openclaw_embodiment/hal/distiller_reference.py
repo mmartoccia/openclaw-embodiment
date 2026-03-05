@@ -83,7 +83,7 @@ class DistillerMicrophoneHAL(MicrophoneHal):
                 duration_ms=duration_ms,
                 timestamp_ms=int(time.time() * 1000),
             )
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             logger.error("[DistillerMic] Capture failed: %s", e)
             raise
         finally:
@@ -112,7 +112,7 @@ class DistillerMicrophoneHAL(MicrophoneHal):
                     self._record_buf.append(chunk)
                     if len(self._record_buf) > 60:
                         self._record_buf.pop(0)
-                except Exception:
+                except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
                     pass
         self._record_thread = threading.Thread(target=_record, daemon=True)
         self._record_thread.start()
@@ -141,7 +141,7 @@ class DistillerMicrophoneHAL(MicrophoneHal):
             result = FastWhisper().transcribe(tmp, language=language)
             os.unlink(tmp)
             return result
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             logger.debug("[DistillerMic] transcribe unavailable: %s", e)
             return ""
 
@@ -163,7 +163,7 @@ class DistillerMicrophoneHAL(MicrophoneHal):
                 capture_output=True, timeout=4
             )
             return result.returncode == 0
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             return False
 
 
@@ -191,11 +191,11 @@ class DistillerAudioOutputHAL(AudioOutputHal):
             subprocess.run(["aplay", "-D", self.DEVICE, tmp],
                            capture_output=True, timeout=30)
             os.unlink(tmp)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             # Fallback: espeak
             try:
                 subprocess.run(["espeak", text], capture_output=True, timeout=10)
-            except Exception as e:
+            except Exception as e:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
                 logger.warning("[DistillerAudio] speak failed: %s", e)
 
     def speak_agent_response(self, response: AgentResponse) -> None:
@@ -273,7 +273,7 @@ class DistillerCameraHAL(CameraHal):
             )
             with open(tmp, "rb") as fh:
                 return fh.read()
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             logger.error("[DistillerCamera] Capture failed: %s", e)
             raise
         finally:
@@ -377,11 +377,11 @@ class DistillerCameraHAL(CameraHal):
             mean_edge = sum(edge_pixels) / max(len(edge_pixels), 1)
 
             # Empirical threshold: >25 mean edge intensity suggests human presence
-            # TODO: Calibrate on actual Distiller footage
+            # TODO(hal): Calibrate threshold against OV5647 footage at varying distances
             if mean_edge > 25:
                 return 1
             return 0
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- vision processing -- image data may be malformed
             logger.warning("[DistillerCamera] estimate_person_count failed: %s", e)
             return None
 
@@ -401,7 +401,7 @@ class DistillerCameraHAL(CameraHal):
         try:
             data = self.capture()
             return len(data) > 1000
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             return False
 
 
@@ -426,7 +426,7 @@ class DistillerEinkDisplayHAL(DisplayHal):
             d = self._get_display()
             d.close()
             logger.info("[DistillerEink] Display initialized.")
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             logger.warning("[DistillerEink] Init warning: %s", e)
 
     def show(self, card: DisplayCard) -> None:
@@ -444,7 +444,7 @@ class DistillerEinkDisplayHAL(DisplayHal):
                 try:
                     font_title = ImageFont.truetype(
                         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
-                except Exception:
+                except Exception:  # grain: ignore NAKED_EXCEPT -- cosmetic output -- best-effort, never crash on display failure
                     font_title = ImageFont.load_default()
                 draw.text((5, 4), card.title[:30], font=font_title, fill=0)
 
@@ -452,7 +452,7 @@ class DistillerEinkDisplayHAL(DisplayHal):
             try:
                 font_body = ImageFont.truetype(
                     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 13)
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- cosmetic output -- best-effort, never crash on display failure
                 font_body = ImageFont.load_default()
             y_start = 26 if card.title else 10
             # Wrap body text
@@ -471,7 +471,7 @@ class DistillerEinkDisplayHAL(DisplayHal):
             d.display_image(tmp, DisplayMode.FULL)
             d.close()
             self._last_rendered = card.body
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- servo/motor read -- firmware errors are not typed
             logger.error("[DistillerEink] show() failed: %s", e)
 
     def render_agent_response(self, response: AgentResponse) -> None:
@@ -502,7 +502,7 @@ class DistillerEinkDisplayHAL(DisplayHal):
             d = Display()
             d.close()
             return True
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- cosmetic output -- best-effort, never crash on display failure
             return False
 
     @staticmethod

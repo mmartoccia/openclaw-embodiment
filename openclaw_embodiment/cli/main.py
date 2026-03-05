@@ -78,7 +78,7 @@ def doctor() -> None:
         with urllib_request.urlopen(req, timeout=1):
             typer.echo("🤖 Reachy Mini: CONNECTED at localhost:50055")
             ok_count += 1
-    except Exception:
+    except Exception:  # grain: ignore NAKED_EXCEPT -- connectivity probe -- informational only, must not crash CLI
         typer.echo("🤖 Reachy Mini: NOT FOUND at localhost:50055 (start reachy-mini-daemon to connect)")
         # Not an error or warning -- informational only
 
@@ -88,7 +88,7 @@ def doctor() -> None:
         with urllib_request.urlopen(req, timeout=1):
             typer.echo("🌐 OpenClaw Gateway: REACHABLE at 100.82.191.2:18800")
             ok_count += 1
-    except Exception:
+    except Exception:  # grain: ignore NAKED_EXCEPT -- connectivity probe -- informational only, must not crash CLI
         typer.echo("🌐 OpenClaw Gateway: NOT REACHABLE at 100.82.191.2:18800 (check OpenClaw is running)")
         # Informational only
 

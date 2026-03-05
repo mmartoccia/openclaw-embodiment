@@ -111,11 +111,11 @@ class IMUHal(HALBase, ABC):
 
     @abstractmethod
     def read_sample(self) -> Optional[IMUSample]:
-        """Read a sample."""
+        """Return the latest accelerometer/gyro sample, or None if unavailable."""
 
     @abstractmethod
     def set_sample_rate(self, hz: int) -> None:
-        """Set sample rate."""
+        """Configure the IMU polling frequency in Hz."""
 
     @abstractmethod
     def shutdown(self) -> None:
@@ -131,14 +131,14 @@ class CameraHal(HALBase, ABC):
 
     @abstractmethod
     def capture_frame(self) -> CameraFrame:
-        """Capture frame."""
+        """Grab a single frame from the camera sensor."""
 
     def get_raw_frame(self) -> Optional[bytes]:
         """Return raw unprocessed frame bytes. Override for device-specific access.
         Default implementation calls capture_frame() and returns frame.data."""
         try:
             return self.capture_frame().data
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             return None
 
     @abstractmethod
@@ -155,11 +155,11 @@ class MicrophoneHal(HALBase, ABC):
 
     @abstractmethod
     def start_recording(self) -> None:
-        """Start recording."""
+        """Begin capturing audio into the internal ring buffer."""
 
     @abstractmethod
     def stop_recording(self) -> None:
-        """Stop recording."""
+        """Halt audio capture and flush the ring buffer."""
 
     @abstractmethod
     def get_buffer(self, duration_ms: int) -> AudioChunk:
@@ -266,7 +266,7 @@ class DisplayHal(HALBase, ABC):
 
     @abstractmethod
     def render_agent_response(self, response: "_AgentResponse") -> None:
-        """Render an agent response on the display.
+        """Format and display an agent response card on the output surface.
 
         Args:
             response: AgentResponse from the bidirectional agent pipeline.

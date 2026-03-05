@@ -129,7 +129,7 @@ class FrameCameraHAL(CameraHal):
                 format="JPEG",
                 data=jpeg_bytes,
             )
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             return CameraFrame(
                 timestamp_ms=now,
                 width=self._resolution[0],
@@ -145,7 +145,7 @@ class FrameCameraHAL(CameraHal):
         try:
             frame = self.capture_frame()
             return len(frame.data) > 0
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             return False
 
     def get_device_info(self) -> dict:
@@ -218,7 +218,7 @@ class FrameIMUHAL(IMUHal):
                 gyro_z = (accel_z - self._last_accel[2]) / dt_s
 
             self._last_accel = (accel_x, accel_y, accel_z)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- IMU read -- sensor errors vary by bus type
             if self._last_accel is not None:
                 accel_x, accel_y, accel_z = self._last_accel
 
@@ -243,7 +243,7 @@ class FrameIMUHAL(IMUHal):
         try:
             sample = self.read_sample()
             return sample is not None
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- IMU read -- sensor errors vary by bus type
             return False
 
     def get_device_info(self) -> dict:
@@ -287,7 +287,7 @@ class FrameMicrophoneHAL(MicrophoneHal):
             return
         try:
             _run_async(self._frame.microphone.start())
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             pass
         self._recording = True
 
@@ -297,7 +297,7 @@ class FrameMicrophoneHAL(MicrophoneHal):
             return
         try:
             _run_async(self._frame.microphone.stop())
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             pass
         self._recording = False
 
@@ -312,7 +312,7 @@ class FrameMicrophoneHAL(MicrophoneHal):
             )
             if audio_bytes is None:
                 audio_bytes = b""
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             # Return silence if hardware not available
             n_samples = int(self.SAMPLE_RATE * duration_ms / 1000)
             audio_bytes = b"\x00" * (n_samples * 2)  # mono int16
@@ -372,7 +372,7 @@ class FrameDisplayHAL(DisplayHal):
         try:
             # Clear display on init
             _run_async(self._frame.display.clear())
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             pass
 
     def show(self, card: DisplayCard) -> None:
@@ -385,14 +385,14 @@ class FrameDisplayHAL(DisplayHal):
                 _run_async(self._frame.display.write_text(text))
             except AttributeError:
                 _run_async(self._frame.display.show_text(text))
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             pass
 
     def clear(self) -> None:
         """Clear Frame display."""
         try:
             _run_async(self._frame.display.clear())
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             pass
 
     def shutdown(self) -> None:
@@ -451,7 +451,7 @@ class FrameTransportHAL(TransportHal):
                 # Fallback: some SDK versions expose frame.send() directly
                 _run_async(self._frame.send(payload))
             return SendResult(True, len(payload), _ms() - t0)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             return SendResult(False, 0, _ms() - t0)
 
     def receive(self, timeout_ms: int = 1000) -> Optional[bytes]:

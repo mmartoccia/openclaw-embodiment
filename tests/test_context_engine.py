@@ -185,7 +185,6 @@ class TestGracefulDegradation:
 
 
 class TestAwarenessLevelCalculation:
-    """Test 5: awareness_level calculation."""
     
     def test_single_sensor_awareness(self) -> None:
         """Single sensor should yield approximately 0.25 awareness."""
@@ -250,7 +249,6 @@ class TestAwarenessLevelCalculation:
 
 
 class TestConflictDetection:
-    """Tests 6-7: Conflict detection and penalty."""
     
     def test_speaker_person_conflict(self) -> None:
         """Test 6: audio says 3 speakers, visual says 1 person -> conflict."""

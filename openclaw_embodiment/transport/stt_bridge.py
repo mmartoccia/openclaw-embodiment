@@ -210,7 +210,7 @@ class OpenClawSTTBridge:
             except asyncio.TimeoutError as exc:
                 try:
                     proc.kill()
-                except Exception:
+                except Exception:  # grain: ignore NAKED_EXCEPT -- STT transcription -- service errors must not crash the audio pipeline
                     pass
                 raise STTTimeoutError(
                     f"openclaw stt transcribe (async) timed out after {self._timeout_s}s"

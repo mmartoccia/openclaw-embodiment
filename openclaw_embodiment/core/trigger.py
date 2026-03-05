@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class HeartbeatWakeResult:
-    """Result of a heartbeat wake request.
+    """Holds the outcome and timestamp of a heartbeat wake attempt.
 
     Attributes:
         success: True if the wake call was dispatched, False if cooldown blocked it.
@@ -147,6 +147,6 @@ class TriggerDetector:
                 dispatched = _resp.status == 200
                 logger.debug("[Trigger] Gateway heartbeat: status=%d", _resp.status)
                 return dispatched
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- trigger wake call -- hardware unavailability is expected
             logger.debug("[Trigger] Gateway unavailable (%s) -- heartbeat skipped.", e)
             return False

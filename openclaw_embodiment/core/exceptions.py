@@ -63,7 +63,7 @@ class PayloadFragmentOrderError(PayloadValidationError):
 
 
 class ContextAPIError(OpenClawWearableError):
-    """Base context API error."""
+    """Raised when the context service returns an unexpected or error response."""
 
 
 class ContextNetworkError(ContextAPIError):

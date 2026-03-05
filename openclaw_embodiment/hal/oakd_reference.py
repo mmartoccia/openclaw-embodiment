@@ -61,7 +61,7 @@ def _encode_jpeg(frame_bgr: Any) -> bytes:
         import cv2  # type: ignore
         ok, buf = cv2.imencode(".jpg", frame_bgr)
         return bytes(buf) if ok else b""
-    except Exception:
+    except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
         return b""
 
 
@@ -118,7 +118,7 @@ class OakDCameraHAL(CameraHal):
             self._output_queue = self._device.getOutputQueue(
                 name="rgb", maxSize=4, blocking=False
             )
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- depth pipeline -- OAK-D SDK errors are not consistently typed
             # Hardware not present -- initialize in degraded mode for testing
             self._device = None
             self._output_queue = None
@@ -142,7 +142,7 @@ class OakDCameraHAL(CameraHal):
                 format="JPEG",
                 data=jpeg,
             )
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             return CameraFrame(
                 timestamp_ms=now,
                 width=self._resolution_w,
@@ -155,7 +155,7 @@ class OakDCameraHAL(CameraHal):
         """Return raw JPEG bytes of the latest frame."""
         try:
             return self.capture_frame().data
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             return None
 
     def shutdown(self) -> None:
@@ -163,7 +163,7 @@ class OakDCameraHAL(CameraHal):
         try:
             if self._device is not None:
                 self._device.close()
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             pass
         finally:
             self._device = None
@@ -174,7 +174,7 @@ class OakDCameraHAL(CameraHal):
         try:
             frame = self.capture_frame()
             return len(frame.data) > 0
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             return False
 
     def get_device_info(self) -> dict:
@@ -224,7 +224,7 @@ class OakDFrameChangeIMU(IMUHal):
             if self._camera is not None:
                 baseline = self._camera.capture_frame()
                 self._prev_frame_data = baseline.data
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             self._prev_frame_data = None
 
     def read_sample(self) -> Optional[IMUSample]:
@@ -249,7 +249,7 @@ class OakDFrameChangeIMU(IMUHal):
                         synthetic_gyro = scale * 200.0
 
                 self._prev_frame_data = current_data
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             synthetic_gyro = 0.0
 
         self._last_poll_ms = now
@@ -273,7 +273,7 @@ class OakDFrameChangeIMU(IMUHal):
         try:
             sample = self.read_sample()
             return sample is not None
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
             return False
 
     def get_device_info(self) -> dict:
@@ -334,7 +334,7 @@ class OakDTransportHAL(TransportHal):
             with urllib.request.urlopen(req, timeout=self._timeout_s) as resp:
                 _ = resp.read()
             return SendResult(True, len(payload), _ms() - t0)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- BLE scan -- adapter errors vary by OS and driver
             return SendResult(False, 0, _ms() - t0)
 
     def receive(self, timeout_ms: int = 1000) -> Optional[bytes]:

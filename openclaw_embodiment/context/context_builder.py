@@ -79,12 +79,10 @@ class ContextBuilder:
         # Detect conflicts first (affects awareness calculation)
         conflicts = self._detect_conflicts(audio, visual, motion, proximity)
         
-        # Calculate awareness level
         awareness_level = self._calculate_awareness_level(
             audio, visual, motion, proximity, conflicts
         )
         
-        # Generate deterministic summary
         summary = self._generate_summary(
             trigger, audio, visual, motion, proximity, awareness_level, conflicts
         )

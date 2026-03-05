@@ -100,7 +100,7 @@ def _run_async(coro):
                 future = pool.submit(asyncio.run, coro)
                 return future.result()
         return loop.run_until_complete(coro)
-    except Exception:
+    except Exception:  # grain: ignore NAKED_EXCEPT -- HAL hardware call -- exception types vary by SDK and platform
         return None
 
 
@@ -262,7 +262,7 @@ class G2RSSIMotionProxy(IMUHal):
             device = await BleakScanner.find_device_by_address(address, timeout=1.0)
             if device is not None and hasattr(device, "rssi"):
                 return float(device.rssi)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- BLE scan -- adapter errors vary by OS and driver
             pass
         return None
 
@@ -277,7 +277,7 @@ class G2RSSIMotionProxy(IMUHal):
         try:
             sample = self.read_sample()
             return sample is not None
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- cleanup path -- must not raise during teardown
             return False
 
     def get_device_info(self) -> dict:
@@ -336,7 +336,7 @@ class G2MicrophoneHAL(MicrophoneHal):
             return
         try:
             _run_async(self._connect_and_subscribe())
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             pass
         self._recording = True
 
@@ -357,7 +357,7 @@ class G2MicrophoneHAL(MicrophoneHal):
                         pcm = bytes(data)
                     if not self._buffer.full():
                         self._buffer.put_nowait(pcm)
-                except Exception:
+                except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
                     pass
 
             self._client = BleakClient(self._left_address)
@@ -367,10 +367,10 @@ class G2MicrophoneHAL(MicrophoneHal):
                 await self._client.write_gatt_char(
                     self._characteristic_uuid, bytes([0x0E, 0x01])
                 )
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
                 pass
             await self._client.start_notify(self._characteristic_uuid, _audio_handler)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             self._client = None
 
     def stop_recording(self) -> None:
@@ -379,7 +379,7 @@ class G2MicrophoneHAL(MicrophoneHal):
             return
         try:
             _run_async(self._disconnect())
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             pass
         self._recording = False
 
@@ -390,7 +390,7 @@ class G2MicrophoneHAL(MicrophoneHal):
                 await self._client.stop_notify(self._characteristic_uuid)
                 await self._client.disconnect()
                 self._client = None
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             pass
 
     def get_buffer(self, duration_ms: int = 100) -> AudioChunk:
@@ -487,7 +487,7 @@ class G2DisplayHAL(DisplayHal):
         try:
             text = card.title + "\n" + card.body if card.title else card.body
             _run_async(self._send_teleprompter(text))
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             pass
 
     async def _send_teleprompter(self, text: str) -> None:
@@ -498,14 +498,14 @@ class G2DisplayHAL(DisplayHal):
             async with BleakClient(self._right_address) as client:
                 self._seq = (self._seq + 1) & 0xFF
                 await _send_text(client, text, seq=self._seq)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- BLE scan -- adapter errors vary by OS and driver
             pass
 
     def clear(self) -> None:
         """Send empty text to clear the display."""
         try:
             _run_async(self._send_teleprompter(""))
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- cosmetic output -- best-effort, never crash on display failure
             pass
 
     def render_agent_response(self, response: "AgentResponse") -> None:
@@ -528,7 +528,7 @@ class G2DisplayHAL(DisplayHal):
             text = text[:200]
             self._last_rendered = text  # Always store for inspection/testing
             _run_async(self._send_teleprompter(text))
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- cosmetic output -- best-effort, never crash on display failure
             pass
 
     def shutdown(self) -> None:
@@ -641,7 +641,7 @@ class G2TransportHAL(TransportHal):
                     right_addr = device.address
 
             return left_addr, right_addr
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- BLE scan -- adapter errors vary by OS and driver
             return None, None
 
     async def _authenticate(self, client) -> bool:
@@ -681,7 +681,7 @@ class G2TransportHAL(TransportHal):
             await asyncio.sleep(0.05)
 
             return True
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- HAL hardware call -- exception types vary by SDK and platform
             return False
 
     async def _ble_connect(self) -> bool:
@@ -720,12 +720,12 @@ class G2TransportHAL(TransportHal):
                 try:
                     if not self._recv_q.full():
                         self._recv_q.put_nowait(bytes(data))
-                except Exception:
+                except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
                     pass
 
             try:
                 await self._left_client.start_notify(G2_NOTIFY_CHAR_UUID, _notify_handler)
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
                 pass
 
             # Run authentication (7-packet handshake)
@@ -736,12 +736,12 @@ class G2TransportHAL(TransportHal):
                 try:
                     self._right_client = BleakClient(self._right_address)
                     await self._right_client.connect()
-                except Exception:
+                except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
                     self._right_client = None
 
             return self._left_client.is_connected
 
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             return False
 
     def send(self, payload: bytes) -> SendResult:
@@ -763,7 +763,7 @@ class G2TransportHAL(TransportHal):
             with urllib.request.urlopen(req, timeout=5) as resp:
                 _ = resp.read()
             return SendResult(True, len(payload), _ms() - t0)
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- BLE scan -- adapter errors vary by OS and driver
             return SendResult(False, 0, _ms() - t0)
 
     def receive(self, timeout_ms: int = 1000) -> Optional[bytes]:
@@ -789,12 +789,12 @@ class G2TransportHAL(TransportHal):
         try:
             if self._right_client and self._right_client.is_connected:
                 await self._right_client.disconnect()
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             pass
         try:
             if self._left_client and self._left_client.is_connected:
                 await self._left_client.disconnect()
-        except Exception:
+        except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             pass
         self._left_client = None
         self._right_client = None

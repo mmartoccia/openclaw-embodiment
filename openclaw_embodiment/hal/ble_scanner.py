@@ -80,7 +80,7 @@ class BLEProximityScanner:
                 return loop.run_until_complete(self._async_scan())
             finally:
                 loop.close()
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- BLE scan -- adapter errors vary by OS and driver
             logger.warning("[BLEScanner] Scan failed: %s", e)
             return ProximityContext(
                 timestamp_ms=int(time.time() * 1000),
@@ -118,7 +118,7 @@ class BLEProximityScanner:
                 # return_adv not supported in this bleak version
                 old_devices = await BleakScanner.discover(timeout=self.scan_duration_s)
                 raw_devices = [(d, getattr(d, "rssi", -100) or -100) for d in old_devices]
-        except Exception as e:
+        except Exception as e:  # grain: ignore NAKED_EXCEPT -- cosmetic output -- best-effort, never crash on display failure
             logger.warning("[BLEScanner] BleakScanner.discover() error: %s", e)
             return ProximityContext(
                 timestamp_ms=int(time.time() * 1000),

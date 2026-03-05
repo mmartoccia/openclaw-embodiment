@@ -70,7 +70,7 @@ class PiIMU(IMUHal):
                 self._bus.write_byte_data(self._i2c_addr, 0x6B, 0x00)
                 self._rate_hz = sample_rate_hz
                 self._initialized = True
-            except Exception as exc:
+            except Exception as exc:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
                 raise HardwareError(
                     f"IMU init failed: {exc}",
                     error_code="HAL_IMU_INIT_FAILED",
@@ -119,7 +119,7 @@ class PiIMU(IMUHal):
                     gyro_y=gy / 131.0,
                     gyro_z=gz / 131.0,
                 )
-            except Exception as exc:
+            except Exception as exc:  # grain: ignore NAKED_EXCEPT -- IMU read -- sensor errors vary by bus type
                 raise HardwareError(
                     f"IMU read failed: {exc}",
                     error_code="HAL_IMU_READ_FAILED",
@@ -145,7 +145,7 @@ class PiIMU(IMUHal):
             try:
                 if self._bus is not None:
                     self._bus.close()
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- IMU read -- sensor errors vary by bus type
                 logger.exception("best-effort IMU shutdown failed")
             finally:
                 self._bus = None
@@ -190,7 +190,7 @@ class PiCamera(CameraHal):
                 self._picam2.start()
                 self._initialized = True
                 return
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
                 logger.info("picamera2 unavailable, trying OpenCV fallback")
 
             try:
@@ -203,7 +203,7 @@ class PiCamera(CameraHal):
                     raise RuntimeError("cv2 capture device not opened")
                 self._device = cap
                 self._initialized = True
-            except Exception as exc:
+            except Exception as exc:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
                 raise HardwareError(
                     f"Camera init failed: {exc}",
                     error_code="HAL_CAM_INIT_FAILED",
@@ -257,7 +257,7 @@ class PiCamera(CameraHal):
                 )
             except HardwareError:
                 raise
-            except Exception as exc:
+            except Exception as exc:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
                 raise HardwareError(
                     f"Camera capture failed: {exc}",
                     error_code="HAL_CAM_CAPTURE_FAILED",
@@ -271,7 +271,7 @@ class PiCamera(CameraHal):
                     self._picam2.stop()
                 if self._device is not None:
                     self._device.release()
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
                 logger.exception("best-effort camera shutdown failed")
             finally:
                 self._picam2 = None
@@ -322,7 +322,7 @@ class PiMicrophone(MicrophoneHal):
 
                 self._pa = pyaudio.PyAudio()
                 self._initialized = True
-            except Exception as exc:
+            except Exception as exc:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
                 raise HardwareError(
                     f"Microphone init failed: {exc}",
                     error_code="HAL_MIC_INIT_FAILED",
@@ -362,7 +362,7 @@ class PiMicrophone(MicrophoneHal):
                 )
                 self._stream.start_stream()
                 self._recording = True
-            except Exception as exc:
+            except Exception as exc:  # grain: ignore NAKED_EXCEPT -- camera frame capture -- SDK/driver errors are unpredictable
                 raise HardwareError(
                     f"Microphone start failed: {exc}",
                     error_code="HAL_MIC_START_FAILED",
@@ -377,7 +377,7 @@ class PiMicrophone(MicrophoneHal):
                 if self._stream is not None:
                     self._stream.stop_stream()
                     self._stream.close()
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
                 logger.exception("best-effort microphone stop failed")
             finally:
                 self._stream = None
@@ -420,7 +420,7 @@ class PiMicrophone(MicrophoneHal):
             try:
                 if self._pa is not None:
                     self._pa.terminate()
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- audio subsystem -- SDK may throw any error on hardware fault
                 logger.exception("best-effort microphone shutdown failed")
             finally:
                 self._pa = None
@@ -478,7 +478,7 @@ class PiClassifier(ClassifierHal):
                 self._input_hw = (int(shape[2]), int(shape[1]))
                 self._model_path = model_path
                 self._initialized = True
-            except Exception as exc:
+            except Exception as exc:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
                 raise HardwareError(
                     f"Classifier init failed: {exc}",
                     error_code="HAL_CLF_INIT_FAILED",
@@ -512,7 +512,7 @@ class PiClassifier(ClassifierHal):
                 score = float(out.reshape(-1)[0])
                 confidence = max(0.0, min(1.0, score))
                 label = "interesting" if confidence >= 0.5 else "uninteresting"
-            except Exception as exc:
+            except Exception as exc:  # grain: ignore NAKED_EXCEPT -- HAL hardware call -- exception types vary by SDK and platform
                 raise HardwareError(
                     f"Classifier inference failed: {exc}",
                     error_code="HAL_CLF_INFERENCE_FAILED",
@@ -609,7 +609,7 @@ class PiBLETransport(TransportHal):
         if cb is not None:
             try:
                 cb(st)
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- HAL hardware call -- exception types vary by SDK and platform
                 logger.exception("state callback failed")
 
     def initialize(self, config: dict) -> None:
@@ -657,7 +657,7 @@ class PiBLETransport(TransportHal):
 
         try:
             return self._run_coro(_connect(), timeout_s=10.0)
-        except Exception as exc:
+        except Exception as exc:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
             self._set_state(TransportState.DISCONNECTED)
             raise TransportError(
                 f"BLE connect failed: {exc}",
@@ -699,7 +699,7 @@ class PiBLETransport(TransportHal):
             return SendResult(success=True, bytes_sent=sent, elapsed_ms=elapsed, retries=0)
         except TransportError:
             raise
-        except Exception as exc:
+        except Exception as exc:  # grain: ignore NAKED_EXCEPT -- BLE scan -- adapter errors vary by OS and driver
             elapsed = _monotonic_ms() - start
             raise TransportError(
                 f"BLE send failed: {exc}",
@@ -745,7 +745,7 @@ class PiBLETransport(TransportHal):
         async def _disconnect():
             try:
                 await self._client.disconnect()
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
                 logger.exception("best-effort BLE disconnect failed")
 
         self._run_coro(_disconnect(), timeout_s=2.0)
@@ -789,7 +789,7 @@ class PiWiFiTransport(TransportHal):
         if self._cb:
             try:
                 self._cb(st)
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- BLE scan -- adapter errors vary by OS and driver
                 logger.exception("WiFi state callback failed")
 
     def initialize(self, config: dict) -> None:
@@ -811,7 +811,7 @@ class PiWiFiTransport(TransportHal):
                 s.connect((self._host, self._port))
                 self._sock = s
                 self._set_state(TransportState.CONNECTED)
-            except Exception as exc:
+            except Exception as exc:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
                 self._set_state(TransportState.DISCONNECTED)
                 raise TransportError(
                     f"WiFi connect failed: {exc}",
@@ -834,7 +834,7 @@ class PiWiFiTransport(TransportHal):
                     remediation="Reduce payload size or verify network quality",
                 )
             return SendResult(success=True, bytes_sent=len(payload), elapsed_ms=elapsed)
-        except Exception as exc:
+        except Exception as exc:  # grain: ignore NAKED_EXCEPT -- HAL hardware call -- exception types vary by SDK and platform
             raise TransportError(
                 f"WiFi send failed: {exc}",
                 error_code="HAL_TXP_SEND_FAILED",
@@ -870,7 +870,7 @@ class PiWiFiTransport(TransportHal):
         if self._sock:
             try:
                 self._sock.close()
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- device init may fail with any SDK/firmware error
                 logger.exception("best-effort wifi disconnect failed")
         self._sock = None
         self._set_state(TransportState.DISCONNECTED)
@@ -993,7 +993,7 @@ class PiAudioOutput(AudioOutputHal):
         if self._proc is not None and self._proc.poll() is None:
             try:
                 self._proc.terminate()
-            except Exception:
+            except Exception:  # grain: ignore NAKED_EXCEPT -- HAL hardware call -- exception types vary by SDK and platform
                 logger.exception("best-effort audio terminate failed")
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=0.5)
