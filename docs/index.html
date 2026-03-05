@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenClaw Embodiment SDK</title>
+<style>
+  :root { --bg: #0a0a0f; --fg: #c8c8d0; --accent: #6df; --dim: #555; --code-bg: #14141f; --warn: #f90; --green: #4c6; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font: 16px/1.6 'SF Mono', 'Fira Code', monospace; max-width: 720px; margin: 0 auto; padding: 40px 20px; }
+  h1 { color: var(--accent); font-size: 1.8em; margin-bottom: 4px; }
+  .tagline { color: var(--dim); margin-bottom: 32px; font-size: 1.05em; }
+  h2 { color: var(--warn); font-size: 1.1em; margin: 32px 0 12px; text-transform: uppercase; letter-spacing: 1px; }
+  pre { background: var(--code-bg); padding: 16px; border-radius: 6px; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--accent); }
+  code { color: var(--accent); font-size: 0.9em; }
+  p { margin: 10px 0; }
+  .module { display: inline-block; background: var(--code-bg); border: 1px solid #222; border-radius: 4px; padding: 6px 14px; margin: 4px; font-size: 0.85em; }
+  .module .name { color: var(--accent); }
+  .module .desc { color: var(--dim); font-size: 0.9em; }
+  .grid { display: flex; flex-wrap: wrap; margin: 12px -4px; }
+  .stat { background: var(--code-bg); border: 1px solid #222; border-radius: 4px; padding: 12px 16px; margin: 4px; text-align: center; min-width: 100px; }
+  .stat .num { color: var(--green); font-size: 1.4em; font-weight: bold; }
+  .stat .label { color: var(--dim); font-size: 0.75em; text-transform: uppercase; }
+  .links { margin-top: 36px; }
+  .links a { display: inline-block; margin-right: 16px; padding: 8px 16px; border: 1px solid var(--accent); border-radius: 4px; text-decoration: none; color: var(--accent); }
+  .links a:hover { background: var(--accent); color: var(--bg); }
+  .footer { margin-top: 48px; color: var(--dim); font-size: 0.8em; }
+  .governance { border: 1px solid var(--warn); border-radius: 6px; padding: 16px; margin: 16px 0; }
+  .governance h3 { color: var(--warn); font-size: 0.95em; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<h1>OpenClaw Embodiment SDK</h1>
+<p class="tagline">Hardware abstraction layer for connecting physical devices to AI agent runtimes.</p>
+
+<p>A Python SDK that bridges sensors, cameras, microphones, BLE devices, and robotic hardware into the OpenClaw agent loop. Built for the Pamir Distiller, Even G2 glasses, and Reachy robotics -- but the HAL interface works with anything.</p>
+
+<h2>Install</h2>
+<pre><code>pip install -e .         # from source
+git clone https://github.com/mmartoccia/openclaw-embodiment.git</code></pre>
+
+<h2>Architecture</h2>
+
+<div class="grid">
+  <div class="stat"><div class="num">237</div><div class="label">Tests passing</div></div>
+  <div class="stat"><div class="num">0</div><div class="label">Grain errors</div></div>
+  <div class="stat"><div class="num">10</div><div class="label">Modules</div></div>
+  <div class="stat"><div class="num">3</div><div class="label">HAL profiles</div></div>
+</div>
+
+<div style="margin: 16px 0;">
+  <div class="module"><span class="name">hal/</span> <span class="desc">hardware abstraction</span></div>
+  <div class="module"><span class="name">context/</span> <span class="desc">sensor context builder</span></div>
+  <div class="module"><span class="name">discovery/</span> <span class="desc">world model + anomaly detection</span></div>
+  <div class="module"><span class="name">transport/</span> <span class="desc">BLE, WiFi, STT bridge</span></div>
+  <div class="module"><span class="name">triggers/</span> <span class="desc">audio + motion wake</span></div>
+  <div class="module"><span class="name">profiles/</span> <span class="desc">device profiles (iOS, Distiller, G2)</span></div>
+  <div class="module"><span class="name">core/</span> <span class="desc">base classes + interfaces</span></div>
+  <div class="module"><span class="name">cli/</span> <span class="desc">diagnostic commands</span></div>
+</div>
+
+<div class="governance">
+  <h3>Agent Governance</h3>
+  <p>This repo is built with agentic tooling. Autonomous agents contribute code. That means it needs rules humans don't:</p>
+  <p><a href="https://github.com/mmartoccia/openclaw-embodiment/blob/master/AGENTS.md" style="color: var(--accent);">AGENTS.md</a> -- contribution protocol for autonomous agents<br>
+  <a href="https://grainlinter.com" style="color: var(--accent);">grain</a> -- anti-slop linter, runs on every commit</p>
+</div>
+
+<h2>Supported Hardware</h2>
+<p><strong>Pamir Distiller</strong> -- ARM SBC with e-ink display, mic, speaker, GPIO. Always-on ambient agent.<br>
+<strong>Even G2 Glasses</strong> -- smart glasses with camera, display, BLE. First-person agent perception.<br>
+<strong>Reachy</strong> -- robotic platform. Full body HAL with joint control, force feedback, camera.</p>
+
+<div class="links">
+  <a href="https://github.com/mmartoccia/openclaw-embodiment">GitHub</a>
+  <a href="https://grainlinter.com">grain linter</a>
+  <a href="https://machinecommits.com">Machine Commits</a>
+</div>
+
+<p class="footer">Built by <a href="https://github.com/mmartoccia">mmartoccia</a>. Python 3.11+. Zero cloud dependencies.</p>
+
+</body>
+</html>
