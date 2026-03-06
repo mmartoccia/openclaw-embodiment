@@ -349,13 +349,20 @@ class JointState:
 
 @dataclass
 class ActuatorCommand:
-    """Command envelope for actuator dispatch."""
+    """Command envelope for actuator dispatch.
+
+    Used for both single-command dispatch and action chunking.
+    When used in a chunk (via ActionChunkBuffer), duration_ms and
+    timestamp_offset_ms carry step timing within the chunk.
+    """
 
     command_id: str
     action: str
     params: dict
     timestamp_ms: int
     timeout_ms: int = 5000
+    duration_ms: int = 100           # how long to execute this step (chunk use)
+    timestamp_offset_ms: int = 0     # offset from chunk start (chunk use)
 
 
 @dataclass
@@ -384,6 +391,30 @@ class ActuatorHal(HALBase, ABC):
         Override for device-specific raw protocol access.
         Default implementation raises NotImplementedError -- must be overridden to use."""
         raise NotImplementedError("send_raw_command not implemented for this device")
+
+    def execute_chunk(self, commands: list, blend_steps: int = 10) -> None:
+        """Execute a sequence of actions as a chunk.
+
+        Default implementation executes commands sequentially via execute().
+        Override in subclasses that have native chunk execution support
+        (e.g. HALs with ActionChunkBuffer or LeRobot ActionQueue).
+
+        Args:
+            commands: List of ActuatorCommand objects to execute in sequence.
+            blend_steps: Number of overlap steps for blending at chunk boundaries.
+        """
+        for cmd in commands:
+            self.execute(cmd)
+
+    @property
+    def supports_chunking(self) -> bool:
+        """Return True if this HAL natively supports chunk execution.
+
+        Override to return True in HALs that have an ActionChunkBuffer
+        or LeRobot ActionQueue wired in. When True, callers should use
+        execute_chunk() + start_control_loop() for decoupled operation.
+        """
+        return False
 
     @abstractmethod
     def stop_all(self) -> None:

@@ -10,3 +10,35 @@ capabilities:
   - transport
   - motion_tracking
 notes: "Alif B1 MCU, 640x400 OLED display, 1080p camera, BLE to host. Requires: pip install frame-sdk. The original OpenClaw Embodiment SDK target form factor."
+
+inference:
+  # Frame Glasses: Alif B1 MCU (Cortex-M55 class) -- ultra-to-low edge
+  # On-glass: TFLite Micro keyword + BLE stream. Host phone/Pi does LLM.
+  tier: "low-edge"
+  compute: "Alif B1 MCU (on-glass: TFLite Micro only) + BLE companion for LLM"
+  local_llm:
+    recommended: "SmolLM2-360M-GGUF-Q4_K_M"
+    framework: "llama.cpp"
+    notes: "Run on BLE companion device (Pi Zero or phone). On-glass MCU: keyword detection only."
+    alternatives:
+      - model: "Qwen3-0.6B-GGUF-Q4_K_M"
+        framework: "llama.cpp"
+        tradeoff: "better quality; run on Pi 5 companion"
+  stt:
+    recommended: "moonshine-tiny"
+    framework: "onnx"
+    notes: "Audio streamed via BLE to companion for transcription"
+    alternatives:
+      - model: "keyword-spotter"
+        framework: "tflite-micro"
+        tradeoff: "on-glass wake-word only; <100KB; Alif B1 NPU"
+  vlm:
+    recommended: "SmolVLM-256M-GGUF"
+    framework: "llama.cpp"
+    notes: "1080p camera on glasses → BLE stream to companion → SmolVLM inference"
+    alternatives:
+      - model: "moondream2-GGUF"
+        framework: "llama.cpp"
+        tradeoff: "better quality; requires Pi 5+ companion (2GB+ free)"
+  offload_to_companion: true
+  on_glass_only: ["keyword-spotter", "tflite-micro-classifier"]

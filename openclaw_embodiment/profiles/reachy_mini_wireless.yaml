@@ -29,3 +29,37 @@ capabilities:
   - doa
   - imu
 notes: "ReachyMotionTracker uses real IMU data on this model, not encoder proxy. WiFi transport -- no USB cable required. Connect to Reachy's built-in Pi 4 over local network."
+
+inference:
+  # Reachy Mini Wireless: standalone Pi 4 (4GB RAM) -- low-to-mid edge
+  tier: "low-mid-edge"
+  compute: "Raspberry Pi 4 (built-in, 4GB)"
+  local_llm:
+    recommended: "Qwen3-0.6B-GGUF-Q4_K_M"
+    framework: "llama.cpp"
+    estimated_tok_s: 18
+    notes: "Pi 4 is less powerful than Pi 5. Stay under 1GB model size."
+    alternatives:
+      - model: "SmolLM2-360M-GGUF-Q4"
+        framework: "llama.cpp"
+        tradeoff: "faster; simpler reasoning; 180MB"
+      - model: "Gemma3-1B-GGUF"
+        framework: "llama.cpp"
+        tradeoff: "better quality; ~600MB; Google multimodal"
+  stt:
+    recommended: "moonshine-tiny"
+    framework: "onnx"
+    model_id: "UsefulSensors/moonshine-tiny"
+    alternatives:
+      - model: "whisper-tiny"
+        framework: "whisper.cpp"
+        tradeoff: "MIT license; slightly lower WER"
+  vlm:
+    recommended: "SmolVLM-256M-GGUF"
+    framework: "llama.cpp"
+    min_ram_gb: 0.5
+    notes: "Pi 4 4GB: SmolVLM-256M + Qwen3-0.6B simultaneous is tight; choose one at a time."
+    alternatives:
+      - model: "moondream2-GGUF"
+        framework: "llama.cpp"
+        tradeoff: "better quality; ~1.1GB; may exhaust Pi 4 RAM when combined with LLM"

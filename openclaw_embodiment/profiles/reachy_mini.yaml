@@ -16,3 +16,34 @@ capabilities:
   - motion_tracking
   - doa
 notes: "No physical IMU in Lite version. Uses ReachyMotionTracker (head encoder positions as motion proxy)."
+
+inference:
+  tier: "mid-edge"
+  compute: "Raspberry Pi 5-class (connected host)"
+  local_llm:
+    recommended: "Qwen3-1.7B-GGUF-Q4_K_M"
+    framework: "llama.cpp"
+    estimated_tok_s: 20
+    alternatives:
+      - model: "Phi-4-mini-GGUF-Q4"
+        framework: "llama.cpp"
+        tradeoff: "best reasoning; ~2.5GB; ideal for task planning"
+      - model: "Gemma3-1B-GGUF"
+        framework: "llama.cpp"
+        tradeoff: "lighter; Google; multimodal capable"
+  stt:
+    recommended: "distil-whisper-small"
+    framework: "whisper.cpp"
+    alternatives:
+      - model: "moonshine-base"
+        framework: "onnx"
+        tradeoff: "faster; lighter; non-commercial"
+  vlm:
+    recommended: "moondream2-GGUF"
+    framework: "llama.cpp"
+    estimated_latency_s: 4
+    min_ram_gb: 2
+    alternatives:
+      - model: "SmolVLM-2.2B-Instruct"
+        framework: "llama.cpp"
+        tradeoff: "Apache 2.0; similar quality"

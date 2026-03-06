@@ -9,3 +9,47 @@ capabilities:
   - transport
   - motion_tracking
 notes: "Requires pi3_reference HAL. BLE transport to OpenClaw gateway."
+
+inference:
+  tier: "mid-edge"
+  local_llm:
+    recommended: "Qwen3-1.7B-GGUF-Q4_K_M"
+    framework: "llama.cpp"
+    estimated_tok_s: 20
+    estimated_size_gb: 1.0
+    alternatives:
+      - model: "Qwen3-4B-GGUF-Q4_K_M"
+        framework: "llama.cpp"
+        tradeoff: "better reasoning (~70% MMLU); ~2.5GB; needs 8GB Pi 5"
+      - model: "Phi-4-mini-GGUF-Q4"
+        framework: "llama.cpp"
+        tradeoff: "best benchmarks (74.4% HumanEval); ~2.5GB"
+      - model: "Llama-3.2-3B-Instruct-GGUF"
+        framework: "llama.cpp"
+        tradeoff: "63.4% MMLU; ExecuTorch path if mobile companion"
+  stt:
+    recommended: "distil-whisper-small"
+    framework: "whisper.cpp"
+    model_id: "distil-whisper/distil-whisper-small.en"
+    notes: "6x faster than whisper-base; good WER; MIT license"
+    alternatives:
+      - model: "moonshine-base"
+        framework: "onnx"
+        tradeoff: "smaller (61MB) but non-commercial license"
+      - model: "whisper-small"
+        framework: "whisper.cpp"
+        tradeoff: "3.4% WER; 100% CPU peaks on Pi 5"
+  vlm:
+    recommended: "moondream2-GGUF"
+    framework: "llama.cpp"
+    model_id: "vikhyatk/moondream2"
+    estimated_latency_s: 4
+    min_ram_gb: 2
+    notes: "Validated on Jetson Orin Nano (~4s/image). 20-40% faster text gen in 2025 updates."
+    alternatives:
+      - model: "SmolVLM-2.2B-Instruct-GGUF"
+        framework: "llama.cpp"
+        tradeoff: "similar quality; Apache 2.0; mlx-community version for Apple"
+      - model: "InternVL2-2B-GGUF"
+        framework: "llama.cpp"
+        tradeoff: "better OCR/DocVQA; ~1.2GB"

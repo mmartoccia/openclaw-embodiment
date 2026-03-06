@@ -33,3 +33,39 @@ capabilities:
   - imu
   - mobile_base
 notes: "Hardware validation pending. HAL written against reachy2-sdk API spec. Mobile base capabilities available if optional wheeled base is installed."
+
+inference:
+  # Reachy 2: external compute (connect via network). Typically high-end workstation or Mac.
+  tier: "high-edge"
+  compute: "External compute -- recommend Mac Mini M4 or Linux workstation"
+  local_llm:
+    recommended: "Qwen3-4B-GGUF-Q4_K_M"
+    framework: "llama.cpp"
+    mlx_alternative: "mlx-community/Qwen3-4B-4bit"
+    estimated_tok_s: 50
+    alternatives:
+      - model: "Phi-4-mini-GGUF-Q4"
+        framework: "llama.cpp"
+        tradeoff: "best reasoning at 3.8B; MIT license"
+      - model: "Qwen3-7B-GGUF-Q4_K_M"
+        framework: "llama.cpp"
+        tradeoff: "rivals 72B on domain tasks; ~4.5GB"
+  stt:
+    recommended: "whisper-small"
+    framework: "whisper.cpp"
+    alternatives:
+      - model: "distil-whisper-small"
+        framework: "whisper.cpp"
+        tradeoff: "6x faster; slightly lower WER"
+  vlm:
+    recommended: "Qwen2-VL-2B-Instruct"
+    framework: "llama.cpp"
+    mlx_alternative: "mlx-community/Qwen2-VL-2B-Instruct-4bit"
+    min_ram_gb: 4
+    alternatives:
+      - model: "moondream2"
+        framework: "llama.cpp"
+        tradeoff: "faster latency; validated on Orin Nano"
+      - model: "InternVL2-4B-GGUF"
+        framework: "llama.cpp"
+        tradeoff: "better DocVQA/OCR for object manipulation tasks"

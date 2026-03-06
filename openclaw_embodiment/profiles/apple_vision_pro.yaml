@@ -9,3 +9,38 @@ transport:
   host: localhost
   port: 8430
 capabilities: [camera, imu, display, transport]
+
+inference:
+  # Apple Vision Pro: M2 chip (same as MacBook M2) -- high-edge via MLX
+  tier: "high-edge"
+  compute: "Apple M2 (visionOS)"
+  local_llm:
+    recommended: "mlx-community/Qwen3-4B-4bit"
+    framework: "mlx"
+    notes: "MLX via mlx_lm. Apple Silicon optimized. ~2.5GB model."
+    alternatives:
+      - model: "mlx-community/Qwen3-1.7B-4bit"
+        framework: "mlx"
+        tradeoff: "faster; less reasoning quality; ~1GB"
+      - model: "mlx-community/Phi-4-mini-4bit"
+        framework: "mlx"
+        tradeoff: "best reasoning; MIT license"
+  stt:
+    recommended: "whisperkit"
+    framework: "coreml"
+    notes: "CoreML optimized; streaming; Apple Neural Engine"
+    alternatives:
+      - model: "whisper-small"
+        framework: "whisper.cpp"
+        tradeoff: "cross-platform fallback; MIT"
+  vlm:
+    recommended: "mlx-community/Qwen2-VL-2B-Instruct-4bit"
+    framework: "mlx"
+    min_ram_gb: 4
+    alternatives:
+      - model: "FastVLM-1.5B"
+        framework: "coreml"
+        tradeoff: "Apple-optimized; CoreML Neural Engine path"
+      - model: "mlx-community/SmolVLM-2.2B-Instruct-4bit"
+        framework: "mlx"
+        tradeoff: "Apache 2.0; HuggingFace model"

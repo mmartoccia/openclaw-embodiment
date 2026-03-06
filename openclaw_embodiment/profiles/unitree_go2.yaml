@@ -10,6 +10,39 @@ transport:
   host: 192.168.123.161
   port: 8080
 capabilities: [camera, imu, actuator, audio_output, system_health]
+
+inference:
+  # Unitree Go2: onboard Jetson Orin Nano 8GB -- mid-edge tier
+  tier: "mid-edge"
+  compute: "Jetson Orin Nano 8GB"
+  local_llm:
+    recommended: "Qwen3-1.7B-GGUF-Q4_K_M"
+    framework: "llama.cpp"
+    estimated_tok_s: 20
+    alternatives:
+      - model: "Qwen3-4B-GGUF-Q4_K_M"
+        framework: "llama.cpp"
+        tradeoff: "better reasoning; ~2.5GB; fits 8GB Orin Nano"
+      - model: "Phi-4-mini-GGUF-Q4"
+        framework: "llama.cpp"
+        tradeoff: "best benchmarks; ~2.5GB; strong reasoning"
+  stt:
+    recommended: "distil-whisper-small"
+    framework: "whisper.cpp"
+    alternatives:
+      - model: "moonshine-base"
+        framework: "onnx"
+        tradeoff: "faster; smaller; non-commercial"
+  vlm:
+    recommended: "moondream2-GGUF"
+    framework: "llama.cpp"
+    estimated_latency_s: 4
+    min_ram_gb: 2
+    notes: "Validated on Jetson Orin Nano 8G: ~4s/image. Good for scene understanding and navigation context."
+    alternatives:
+      - model: "InternVL2-2B-GGUF"
+        framework: "llama.cpp"
+        tradeoff: "better OCR; MIT license"
 sdk: unitree_sdk2py
 simulation:
   enabled: true  # unitree_sdk2py simulation mode

@@ -76,6 +76,7 @@ from .base import (
     TransportHal,
     TransportState,
 )
+from .lerobot_bridge import get_action_queue
 
 if TYPE_CHECKING:
     pass  # ReachySDK type hints deferred to avoid hard import dependency
@@ -916,6 +917,11 @@ class Reachy2ActuatorHAL(ActuatorHal):
         self._reachy = reachy
         self._has_mobile_base = has_mobile_base
 
+        # Action chunking support (LeRobot ActionQueue or ActionChunkBuffer fallback)
+        self._chunk_buffer = get_action_queue(execution_horizon=10)
+        self._control_loop_thread: object = None
+        self._control_loop_active = False
+
     def initialize(self) -> None:
         """Initialize actuator system -- move to compliant mode."""
         try:
@@ -978,8 +984,70 @@ class Reachy2ActuatorHAL(ActuatorHal):
                 error=str(exc),
             )
 
+    def execute_chunk(self, commands: list, blend_steps: int = 10) -> None:
+        """Push a chunk of commands into the ActionChunkBuffer.
+
+        The buffer accepts the new chunk immediately (non-blocking) and blends
+        it with the current executing chunk at the boundary. The control loop
+        (started via start_control_loop()) drains commands at the target frequency.
+
+        Args:
+            commands: List of ActuatorCommand objects to execute as a chunk.
+            blend_steps: Number of blend overlap steps at chunk boundary.
+        """
+        self._chunk_buffer.merge(commands, inference_delay_steps=blend_steps)
+
+    @property
+    def supports_chunking(self) -> bool:
+        """Return True -- Reachy2 HAL has ActionChunkBuffer wired in."""
+        return True
+
+    def start_control_loop(self, hz: int = 100) -> None:
+        """Start background control loop that drains ActionChunkBuffer at target hz.
+
+        The loop calls self._chunk_buffer.get() each tick and dispatches the
+        resulting command via self.execute(). Thread-safe; idempotent if already running.
+
+        Args:
+            hz: Target control loop frequency in Hz. Default: 100Hz.
+        """
+        if self._control_loop_active:
+            return
+
+        import threading
+
+        self._control_loop_active = True
+        interval = 1.0 / hz
+
+        def _loop() -> None:
+            while self._control_loop_active:
+                t0 = time.time()
+                cmd = self._chunk_buffer.get()
+                if cmd is not None:
+                    try:
+                        self.execute(cmd)
+                    except Exception:  # grain: ignore NAKED_EXCEPT -- control loop -- must not crash
+                        pass
+                elapsed = time.time() - t0
+                sleep_time = interval - elapsed
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+
+        self._control_loop_thread = threading.Thread(target=_loop, daemon=True, name="reachy2-control-loop")
+        self._control_loop_thread.start()
+
+    def stop_control_loop(self) -> None:
+        """Stop the background control loop gracefully."""
+        self._control_loop_active = False
+        if self._control_loop_thread is not None:
+            self._control_loop_thread.join(timeout=2.0)
+            self._control_loop_thread = None
+        self._chunk_buffer.clear()
+
     def stop_all(self) -> None:
         """Emergency stop -- set all joints to compliant (free) mode."""
+        self._control_loop_active = False
+        self._chunk_buffer.clear()
         try:
             self._reachy.turn_off("reachy")
         except Exception:  # grain: ignore NAKED_EXCEPT -- servo/motor read -- firmware errors are not typed
@@ -1037,6 +1105,7 @@ class Reachy2ActuatorHAL(ActuatorHal):
 
     def shutdown(self) -> None:
         """Shutdown actuator system -- set all joints to safe/compliant mode."""
+        self.stop_control_loop()
         self.stop_all()
 
     def validate(self) -> bool:

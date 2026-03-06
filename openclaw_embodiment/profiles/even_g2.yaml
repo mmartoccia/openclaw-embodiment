@@ -8,3 +8,29 @@ capabilities:
   - transport
   - motion_tracking
 notes: "Dual-arm BLE (left connects first, right after ACK). LC3 audio format. BMP display packets (194 bytes, seq 0-255). No camera in G2 -- uses visual field inference from microphone context. Requires: pip install bleak. Protocol: github.com/even-realities/EvenDemoApp (BSD-2-Clause)."
+
+inference:
+  # Even G2: BLE-only glasses, no camera. Low-edge companion profile.
+  # LLM runs on connected phone or Pi Zero companion.
+  tier: "low-edge"
+  local_llm:
+    recommended: "SmolLM2-360M-GGUF-Q4_K_M"
+    framework: "llama.cpp"
+    notes: "Run on Pi Zero 2W companion or phone. No on-glass compute."
+    alternatives:
+      - model: "Qwen3-0.6B-GGUF-Q4_K_M"
+        framework: "llama.cpp"
+        tradeoff: "better reasoning; ~350MB; tight on Pi Zero 512MB"
+  stt:
+    recommended: "moonshine-tiny"
+    framework: "onnx"
+    model_id: "UsefulSensors/moonshine-tiny"
+    notes: "Microphone streams via BLE to companion for transcription"
+    alternatives:
+      - model: "vosk-model-small-en"
+        framework: "tflite"
+        tradeoff: "Apache 2.0; multi-language"
+  vlm:
+    recommended: null
+    notes: "No camera on Even G2. Visual context inferred from audio/conversation only."
+  offload_to_companion: true

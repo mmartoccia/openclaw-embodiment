@@ -22,6 +22,54 @@ SUPPORTED_MODELS: List[str] = [
     "mlx-community/Qwen3-4B-4bit",
 ]
 
+# Edge LLM Registry -- recommended models by use case (2026-03-06)
+# Source: ~/clawd/memory/projects/personal/ventures/edge-llm-registry.md
+# Updated by: Edge LLM Watcher cron (Mon/Wed/Fri 7AM)
+RECOMMENDED_MODELS = {
+    "text": {
+        # Ultra-low latency: fastest possible response, minimal reasoning
+        "ultra_low_latency": "mlx-community/Qwen3-0.6B-4bit",        # 8.6s load, 0.59s inference; validated
+        # Balanced: good quality + speed for real-time wearable use
+        "balanced": "mlx-community/Qwen3-1.7B-4bit",                  # ~1GB; ~120 tok/s on M-series
+        # High quality: best reasoning for complex tasks
+        "high_quality": "mlx-community/Qwen3-4B-4bit",                # ~2.5GB; ~80 tok/s; ~70% MMLU
+        # Best reasoning: highest benchmark scores at small size
+        "best_reasoning": "mlx-community/Phi-4-mini-4bit",            # 3.8B; 74.4% HumanEval; MIT
+    },
+    "vision": {
+        # Fast: lowest latency VLM for real-time camera analysis
+        "fast": "mlx-community/MoonDream2-4bit",                      # 1.9B; validated iPhone real-time
+        # Balanced: good quality VLM for scene understanding
+        "balanced": "mlx-community/SmolVLM-2.2B-Instruct-4bit",      # Apache 2.0; HuggingFace
+        # Quality: best VLM for complex visual reasoning
+        "quality": "mlx-community/Qwen2-VL-7B-Instruct-4bit",        # best VLM quality at high-edge
+        # Compact: smallest viable VLM for memory-constrained scenarios
+        "compact": "mlx-community/Qwen2-VL-2B-Instruct-4bit",        # ~1.2GB; strong text+vision
+    },
+    "stt": {
+        # Tiny: smallest footprint STT (on-device only)
+        "tiny": "mlx-community/whisper-tiny-mlx",                     # 39M; borderline real-time
+        # Accurate: best quality/speed balance
+        "accurate": "mlx-community/whisper-small-mlx",                # 244M; 3.4% WER; MIT
+    },
+    # Non-MLX recommendations for companion/edge contexts (informational)
+    "_companion_coreml": {
+        "vlm": "FastVLM-1.5B",          # CoreML; Apple Neural Engine; Apple-optimized
+        "stt": "WhisperKit",            # CoreML; streaming; best iPhone STT
+        "text": "Llama-3.2-3B",         # ExecuTorch + QNN; Snapdragon AR1 validated
+    },
+    "_low_edge_gguf": {
+        "text": "SmolLM2-360M-GGUF-Q4_K_M",    # 180MB; Pi Zero; Apache 2.0
+        "stt": "moonshine-tiny-onnx",           # 27MB; Pi validated; non-commercial
+        "vlm": "SmolVLM-256M-GGUF",             # 130MB; smallest viable VLM
+    },
+    "_mid_edge_gguf": {
+        "text": "Qwen3-1.7B-GGUF-Q4_K_M",      # 1GB; Pi 5 / Jetson Orin Nano
+        "stt": "distil-whisper-small",          # 166MB; 6x faster than base; MIT
+        "vlm": "moondream2-GGUF",               # 1.1GB; 4s/image on Jetson Orin Nano
+    },
+}
+
 
 @dataclass
 class ModelSpec:

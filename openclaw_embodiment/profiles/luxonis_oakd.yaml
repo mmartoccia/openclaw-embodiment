@@ -9,3 +9,37 @@ capabilities:
   - transport
   - motion_tracking
 notes: "No built-in IMU on base OAK-D (OAK-D Pro W has IMU). Uses frame-change detection as motion proxy. Requires: pip install depthai. USB-C to host Mac/Linux. Onboard MyriadX VPU for neural inference."
+
+inference:
+  # OAK-D: MyriadX VPU onboard. Host compute (Pi 5 or Mac) does LLM.
+  tier: "mid-edge"
+  compute: "Host machine (Pi 5 or Mac) + MyriadX VPU for vision pipeline"
+  local_llm:
+    recommended: "Qwen3-1.7B-GGUF-Q4_K_M"
+    framework: "llama.cpp"
+    notes: "Run on connected host (Pi 5 or Mac). MyriadX handles vision pipeline."
+    alternatives:
+      - model: "SmolLM2-1.7B-GGUF"
+        framework: "llama.cpp"
+        tradeoff: "smaller; faster; lower quality"
+  stt:
+    recommended: "distil-whisper-small"
+    framework: "whisper.cpp"
+    alternatives:
+      - model: "moonshine-base"
+        framework: "onnx"
+        tradeoff: "lighter; non-commercial"
+  vlm:
+    recommended: "InternVL2-1B-ONNX"
+    framework: "onnx-runtime"
+    notes: "ONNX format enables MyriadX/OpenVINO pipeline on OAK-D. Strong OCR + spatial context."
+    alternatives:
+      - model: "moondream2-GGUF"
+        framework: "llama.cpp"
+        tradeoff: "run on host CPU; ~4s latency; validated edge"
+      - model: "SmolVLM-256M"
+        framework: "onnx"
+        tradeoff: "smallest; fits MyriadX memory budget"
+  myriadx_models:
+    notes: "MyriadX VPU supports OpenVINO IR and ONNX. Use for depth + object detection pipeline."
+    recommended_pipeline: "YOLOv8-nano (OpenVINO) + InternVL2-1B (ONNX) on host"

@@ -15,6 +15,46 @@ hal_server:
   http_port: 8421
   ws_port: 8422
 capabilities: [camera, microphone, audio_output, status_indicator]
+
+inference:
+  # Meta Ray-Ban: no on-glass compute. All inference runs on companion iPhone or via gateway.
+  # Companion iPhone profile applies when paired with iOS device.
+  tier: "companion"
+  local_llm:
+    recommended: "Llama-3.2-3B-Instruct"
+    framework: "ExecuTorch"
+    notes: "Run on companion iPhone via ExecuTorch. Snapdragon AR1+ validated: 1.2s TTFT."
+    alternatives:
+      - model: "Llama-3.2-1B-Instruct"
+        framework: "ExecuTorch"
+        tradeoff: "faster; less reasoning quality"
+      - model: "Qwen3-1.7B"
+        framework: "mlx-swift"
+        tradeoff: "Apple Silicon iPhone; Apache 2.0; strong quality"
+      - model: "Llama-3.2-3B"
+        framework: "QNN"
+        tradeoff: "Snapdragon NPU path for Android companion"
+  stt:
+    recommended: "whisperkit"
+    framework: "coreml"
+    notes: "Apple CoreML optimized; streaming; best iPhone STT quality"
+    alternatives:
+      - model: "moonshine-tiny"
+        framework: "onnx-runtime-mobile"
+        tradeoff: "cross-platform fallback; 27MB"
+  vlm:
+    recommended: "FastVLM-1.5B"
+    framework: "coreml"
+    notes: "Apple-optimized; CoreML; designed for iPhone Neural Engine; real-time camera analysis"
+    alternatives:
+      - model: "moondream2"
+        framework: "coreml"
+        tradeoff: "validated iPhone real-time; CoreML conversion from HF"
+      - model: "SmolVLM-500M"
+        framework: "mlx-swift"
+        tradeoff: "lightest viable VLM for companion; Apache 2.0"
+  offload_to_companion: true
+  companion_profile: "ios_companion"
 mwdat:
   mock_mode: true  # set false when using real glasses
   developer_mode_required: true
