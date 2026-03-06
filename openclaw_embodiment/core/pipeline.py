@@ -2,7 +2,10 @@
 
 import threading
 import time
-from typing import Callable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
+
+if TYPE_CHECKING:
+    from .orchestrator import HalOrchestrator, OrchestratorConfig
 
 from ..context.models import AgentResponse, ContextPayload
 from ..hal.base import AudioOutputHal, CameraHal, ClassifierHal, DisplayCard, DisplayHal, IMUHal, MicrophoneHal, SendResult, TransportHal
@@ -128,6 +131,36 @@ class EmbodimentSDK:
             t.shutdown()
         if self.registry.display:
             self.registry.display.shutdown()
+
+    def use_orchestrator(
+        self,
+        config: Optional["OrchestratorConfig"] = None,
+        device_id: str = "default",
+    ) -> "HalOrchestrator":
+        """Switch from the legacy synchronous loop to the async HalOrchestrator.
+
+        Returns a configured ``HalOrchestrator`` instance that uses this SDK's
+        ``registry``.  Call ``await orchestrator.run()`` in your async entry
+        point instead of ``sdk.start()``.
+
+        Backward compatible: ``start()`` / ``stop()`` still work for v1.x code.
+
+        Args:
+            config: Optional OrchestratorConfig. Uses defaults if None.
+            device_id: Device identifier for log output.
+
+        Returns:
+            HalOrchestrator ready to run.
+
+        Example::
+
+            orch = sdk.use_orchestrator()
+            asyncio.run(orch.run())
+        """
+        from .orchestrator import HalOrchestrator, OrchestratorConfig
+
+        cfg = config if config is not None else OrchestratorConfig()
+        return HalOrchestrator(registry=self.registry, config=cfg, device_id=device_id)
 
     def on_trigger(self, callback: Callable[[TriggerEvent], None]) -> None:
         """Register callback invoked after accepted trigger."""

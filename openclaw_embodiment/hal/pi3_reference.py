@@ -1027,3 +1027,176 @@ class PiAudioOutput(AudioOutputHal):
         self.play(b"\x00" * int(self._sample_rate * 0.1) * 2, "PCM_S16LE", self._sample_rate)
         time.sleep(0.15)
         return True
+
+
+# ---------------------------------------------------------------------------
+# System health HAL for Raspberry Pi 3
+# ---------------------------------------------------------------------------
+
+import datetime as _dt
+
+from .base import HealthReport, SystemHealthHal
+
+
+class PiSystemHealth(SystemHealthHal):
+    """System health HAL for Raspberry Pi 3B+.
+
+    Reads:
+    - CPU utilization via psutil
+    - Memory utilization via psutil
+    - SoC temperature via /sys/class/thermal/thermal_zone0/temp
+    - Battery via gpiozero (optional; returns None if not connected)
+    - Connectivity: checks /proc/net/wireless for WiFi, skips BLE check
+
+    Requires:
+        pip install psutil
+        pip install gpiozero  (optional, for battery)
+    """
+
+    HAL_VERSION = "1.0.0"
+
+    _THERMAL_PATH = Path("/sys/class/thermal/thermal_zone0/temp")
+    _WARN_CPU_THRESHOLD = 85.0
+    _WARN_MEM_THRESHOLD = 90.0
+    _WARN_TEMP_THRESHOLD = 80.0
+    _WARN_BATTERY_THRESHOLD = 15.0
+
+    def __init__(self, device_id: str = "pi3", check_interval_s: float = 10.0) -> None:
+        self._device_id = device_id
+        self._check_interval_s = check_interval_s
+        self._degraded_callbacks: list = []
+        self._last_report: Optional[HealthReport] = None
+        self._monitor_thread: Optional[threading.Thread] = None
+        self._stop_event = threading.Event()
+
+    def get_health_report(self) -> HealthReport:
+        """Read and return current Pi system health metrics."""
+        warnings: list = []
+
+        # CPU
+        cpu_percent: Optional[float] = None
+        try:
+            import psutil  # type: ignore
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+            if cpu_percent > self._WARN_CPU_THRESHOLD:
+                warnings.append(f"CPU high: {cpu_percent:.1f}%")
+        except ImportError:
+            warnings.append("psutil not installed -- CPU metrics unavailable")
+
+        # Memory
+        memory_percent: Optional[float] = None
+        try:
+            import psutil  # type: ignore
+            memory_percent = psutil.virtual_memory().percent
+            if memory_percent > self._WARN_MEM_THRESHOLD:
+                warnings.append(f"Memory high: {memory_percent:.1f}%")
+        except ImportError:
+            pass
+
+        # Temperature
+        temperature_c: Optional[float] = None
+        try:
+            raw = self._THERMAL_PATH.read_text().strip()
+            temperature_c = int(raw) / 1000.0
+            if temperature_c > self._WARN_TEMP_THRESHOLD:
+                warnings.append(f"Temperature high: {temperature_c:.1f}°C")
+        except (OSError, ValueError):
+            warnings.append("Temperature sensor unavailable")
+
+        # Battery (gpiozero)
+        battery_percent: Optional[float] = None
+        try:
+            from gpiozero import Battery  # type: ignore
+            b = Battery(anode=20, cathode=21)
+            battery_percent = b.value * 100.0
+            if battery_percent < self._WARN_BATTERY_THRESHOLD:
+                warnings.append(f"Battery low: {battery_percent:.1f}%")
+        except (ImportError, Exception):
+            pass  # Battery not connected or gpiozero unavailable
+
+        # Connectivity
+        wifi_up = False
+        try:
+            wifi_raw = Path("/proc/net/wireless").read_text()
+            wifi_up = len([l for l in wifi_raw.splitlines() if "wlan" in l]) > 0
+        except OSError:
+            pass
+
+        connectivity = {"wifi": wifi_up, "ble": True}
+
+        # Sensor status (best-effort file checks)
+        sensor_status = {
+            "camera": Path("/dev/video0").exists() or Path("/dev/video1").exists(),
+            "imu": True,  # Assume I2C MPU6050 is connected
+            "microphone": True,
+        }
+
+        is_operational = len(warnings) == 0
+
+        return HealthReport(
+            timestamp=_dt.datetime.utcnow(),
+            device_id=self._device_id,
+            cpu_percent=cpu_percent,
+            memory_percent=memory_percent,
+            temperature_c=temperature_c,
+            battery_percent=battery_percent,
+            connectivity=connectivity,
+            sensor_status=sensor_status,
+            is_operational=is_operational,
+            warnings=warnings,
+        )
+
+    def is_operational(self) -> bool:
+        """Return True if the last health report had no warnings."""
+        report = self.get_health_report()
+        return report.is_operational
+
+    def on_degraded(self, callback: Callable[[HealthReport], None]) -> None:
+        """Register a callback invoked when health degrades.
+
+        Starts a background monitor thread on first call.
+
+        Args:
+            callback: Callable accepting HealthReport.
+        """
+        self._degraded_callbacks.append(callback)
+        if self._monitor_thread is None or not self._monitor_thread.is_alive():
+            self._stop_event.clear()
+            self._monitor_thread = threading.Thread(
+                target=self._monitor_loop, daemon=True, name="pi-health-monitor"
+            )
+            self._monitor_thread.start()
+
+    def _monitor_loop(self) -> None:
+        while not self._stop_event.is_set():
+            report = self.get_health_report()
+            if not report.is_operational:
+                for cb in self._degraded_callbacks:
+                    try:
+                        cb(report)
+                    except Exception as exc:
+                        logger.warning("Health degraded callback failed: %s", exc)
+            self._last_report = report
+            self._stop_event.wait(self._check_interval_s)
+
+    def validate(self) -> bool:
+        """Validate by attempting a health report read."""
+        try:
+            self.get_health_report()
+            return True
+        except Exception:
+            return False
+
+    def get_device_info(self) -> dict:
+        """Return Pi health HAL metadata."""
+        return {
+            "name": "pi3-system-health",
+            "device_id": self._device_id,
+            "thermal_path": str(self._THERMAL_PATH),
+        }
+
+    def shutdown(self) -> None:
+        """Stop the background monitor thread."""
+        self._stop_event.set()
+        if self._monitor_thread is not None:
+            self._monitor_thread.join(timeout=2.0)

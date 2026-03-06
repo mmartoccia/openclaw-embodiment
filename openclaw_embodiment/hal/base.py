@@ -532,3 +532,78 @@ class StatusIndicatorHal(HALBase, ABC):
     def shutdown(self) -> None:
         """Release LED hardware resources. Idempotent."""
         ...
+
+
+# ---------------------------------------------------------------------------
+# System health layer -- 10th HAL ABC
+# ---------------------------------------------------------------------------
+
+from datetime import datetime
+
+
+@dataclass
+class HealthReport:
+    """Snapshot of device system health.
+
+    Attributes:
+        timestamp: UTC datetime of the report.
+        device_id: Identifier for the reporting device.
+        cpu_percent: CPU utilization 0-100, or None if unavailable.
+        memory_percent: RAM utilization 0-100, or None if unavailable.
+        temperature_c: CPU/SoC temperature in Celsius, or None if unavailable.
+        battery_percent: Battery level 0-100, or None if no battery.
+        connectivity: Map of interface name to connected boolean (e.g. {"wifi": True}).
+        sensor_status: Map of sensor name to operational boolean (e.g. {"camera": True}).
+        is_operational: True if device is fully operational (no critical warnings).
+        warnings: List of human-readable warning strings.
+    """
+
+    timestamp: datetime
+    device_id: str
+    cpu_percent: Optional[float]
+    memory_percent: Optional[float]
+    temperature_c: Optional[float]
+    battery_percent: Optional[float]
+    connectivity: dict  # {"wifi": True, "ble": True, ...}
+    sensor_status: dict  # {"camera": True, "imu": False, ...}
+    is_operational: bool
+    warnings: list
+
+
+class SystemHealthHal(HALBase, ABC):
+    """System health abstraction -- 10th HAL ABC.
+
+    Provides a uniform interface for querying device health metrics
+    (CPU, memory, temperature, battery, connectivity, sensor status).
+    Required for production deployments.
+    """
+
+    @abstractmethod
+    def get_health_report(self) -> HealthReport:
+        """Return a current snapshot of device health.
+
+        Returns:
+            HealthReport populated with all available metrics.
+        """
+        ...
+
+    @abstractmethod
+    def is_operational(self) -> bool:
+        """Return True if the device is fully operational with no critical warnings.
+
+        Returns:
+            bool indicating operational status.
+        """
+        ...
+
+    @abstractmethod
+    def on_degraded(self, callback: Callable[[HealthReport], None]) -> None:
+        """Register a callback invoked when device health degrades.
+
+        The callback receives the HealthReport at the moment degradation
+        is detected. May be called from a background thread.
+
+        Args:
+            callback: Callable accepting a HealthReport.
+        """
+        ...

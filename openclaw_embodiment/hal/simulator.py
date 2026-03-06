@@ -5,7 +5,28 @@ import time
 from collections import deque
 from typing import Callable, Optional
 
-from .base import AudioChunk, AudioOutputHal, CameraFrame, CameraHal, ClassificationResult, ClassifierHal, DisplayCard, DisplayHal, IMUHal, IMUSample, MicrophoneHal, SendResult, StatusIndicatorHal, TransportHal, TransportState
+import datetime
+
+from .base import (
+    ActuatorHal,
+    AudioChunk,
+    AudioOutputHal,
+    CameraFrame,
+    CameraHal,
+    ClassificationResult,
+    ClassifierHal,
+    DisplayCard,
+    DisplayHal,
+    HealthReport,
+    IMUHal,
+    IMUSample,
+    MicrophoneHal,
+    SendResult,
+    StatusIndicatorHal,
+    SystemHealthHal,
+    TransportHal,
+    TransportState,
+)
 
 
 def _ms() -> int:
@@ -290,3 +311,89 @@ class SimulatedAudioOutput(AudioOutputHal):
 
     def get_device_info(self) -> dict:
         return {"name": "sim-audio"}
+
+
+class SimulatedSystemHealth(SystemHealthHal):
+    """Always-green system health simulator for CI and local testing.
+
+    Reports all sensors as operational, cpu/memory at benign levels,
+    no battery (returns None), no warnings.
+    """
+
+    HAL_VERSION = "1.0.0"
+
+    def __init__(self, device_id: str = "sim-device") -> None:
+        self._device_id = device_id
+        self._degraded_callbacks: list = []
+
+    def get_health_report(self) -> HealthReport:
+        """Return a healthy, fully-green HealthReport."""
+        return HealthReport(
+            timestamp=datetime.datetime.utcnow(),
+            device_id=self._device_id,
+            cpu_percent=5.0,
+            memory_percent=20.0,
+            temperature_c=40.0,
+            battery_percent=None,
+            connectivity={"wifi": True, "ble": True},
+            sensor_status={"camera": True, "imu": True, "microphone": True},
+            is_operational=True,
+            warnings=[],
+        )
+
+    def is_operational(self) -> bool:
+        """Always returns True for the simulator."""
+        return True
+
+    def on_degraded(self, callback: Callable[[HealthReport], None]) -> None:
+        """Register degradation callback (never called in simulator)."""
+        self._degraded_callbacks.append(callback)
+
+    def validate(self) -> bool:
+        """Validate by generating a health report."""
+        report = self.get_health_report()
+        return report.is_operational
+
+    def get_device_info(self) -> dict:
+        """Return simulator health HAL metadata."""
+        return {"name": "sim-health", "type": "simulator", "device_id": self._device_id}
+
+
+class SimulatedActuator(ActuatorHal):
+    """No-op actuator for testing and simulation.
+
+    Records commands but performs no physical actuation.
+    """
+
+    HAL_VERSION = "1.0.0"
+
+    def __init__(self) -> None:
+        self.commands: list = []
+        self._initialized = False
+
+    def initialize(self) -> None:
+        self._initialized = True
+
+    def execute(self, command) -> "ActuatorResult":
+        from .base import ActuatorResult
+        self.commands.append(command)
+        return ActuatorResult(
+            command_id=command.command_id,
+            success=True,
+            elapsed_ms=1,
+        )
+
+    def stop_all(self) -> None:
+        pass
+
+    def get_capabilities(self) -> list:
+        return ["move", "stop", "reset"]
+
+    def shutdown(self) -> None:
+        self._initialized = False
+
+    def validate(self) -> bool:
+        return True
+
+    def get_device_info(self) -> dict:
+        return {"name": "sim-actuator", "type": "simulator"}

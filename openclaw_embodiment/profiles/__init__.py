@@ -1,7 +1,7 @@
 """Device profile loader for OpenClaw Embodiment SDK."""
 
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Tuple
 
 try:
     import yaml  # type: ignore
@@ -21,23 +21,30 @@ _NATIVE_PROFILES: Dict[str, Any] = {
 }
 
 
-def load_profile(name: str) -> Dict[str, Any]:
+def load_profile(name: Optional[str] = None) -> Any:
     """Load a device profile by name and return its config as a dict.
 
-    Supports both YAML-based hardware profiles and Python-native profiles
-    (such as 'ios-companion').
+    Supports both YAML-based hardware profiles, Python-native profiles
+    (such as 'ios-companion'), and auto-discovery (name=None or name="auto").
 
     Args:
-        name: Profile name, e.g. 'reachy-mini', 'pi5-picam', or 'ios-companion'.
+        name: Profile name, e.g. 'reachy-mini', 'pi5-picam', 'ios-companion',
+              'auto', or None (triggers hardware auto-discovery).
 
     Returns:
-        Dict of profile configuration.
+        Dict of profile configuration, or Tuple[str, dict] for auto-discovery.
 
     Raises:
         ValueError: If the profile name is unknown.
+        NoDeviceFoundError: If name="auto" and no device is found.
 
     TODO: Wire HALs once device SDK packages are installed.
     """
+    # Auto-discovery mode
+    if name is None or name == "auto":
+        from ..discovery.auto import auto_discover_profile
+        return auto_discover_profile()
+
     # Check native Python profiles first
     if name in _NATIVE_PROFILES:
         profile = _NATIVE_PROFILES[name]
