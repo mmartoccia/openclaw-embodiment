@@ -9,3 +9,43 @@ capabilities:
   - transport
   - motion_tracking
 notes: "1GHz quad-core, 512MB RAM. Lightweight wearable/embedded profile. Same HAL as Pi5 but with performance constraints -- use lower resolution (320x240) and 10fps for camera."
+
+inference:
+  tier: "low-edge"
+  local_llm:
+    recommended: "SmolLM2-360M-GGUF-Q4_K_M"
+    framework: "llama.cpp"
+    estimated_tok_s: 15
+    alternatives:
+      - model: "SmolLM2-125M-GGUF-Q4"
+        framework: "llama.cpp"
+        tradeoff: "faster (~25 tok/s) but lower quality reasoning"
+      - model: "HuggingFaceTB/SmolLM2-360M"
+        framework: "TFLite"
+        tradeoff: "slightly faster on Pi Zero ARM; less flexible"
+      - model: "Qwen3-0.6B-GGUF-Q4_K_M"
+        framework: "llama.cpp"
+        tradeoff: "better quality but ~350MB; tight on 512MB"
+  stt:
+    recommended: "moonshine-tiny"
+    framework: "onnx"
+    model_id: "UsefulSensors/moonshine-tiny"
+    size_mb: 27
+    alternatives:
+      - model: "vosk-model-small-en"
+        framework: "tflite"
+        tradeoff: "Apache 2.0 license; multi-language; ~8% WER vs ~5%"
+      - model: "whisper-tiny"
+        framework: "whisper.cpp"
+        tradeoff: "borderline real-time on Pi Zero; most portable"
+  vlm:
+    recommended: "SmolVLM-256M-GGUF"
+    framework: "llama.cpp"
+    model_id: "HuggingFaceTB/SmolVLM-256M-Instruct"
+    size_mb: 130
+    min_ram_gb: 0.3
+    notes: "Only viable VLM at this tier. Pair with SmolLM2 for text; use VLM for image classification only."
+    alternatives:
+      - model: "SmolVLM-500M-GGUF"
+        framework: "llama.cpp"
+        tradeoff: "better accuracy; 260MB; may exceed Pi Zero budget"

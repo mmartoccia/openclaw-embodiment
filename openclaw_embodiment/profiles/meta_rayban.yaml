@@ -1,0 +1,20 @@
+profile: meta-rayban
+display_name: Meta Ray-Ban Smart Glasses
+hardware:
+  camera: {fps: 1, format: jpeg, resolution: "1080p"}
+  microphone: {sample_rate: 16000, channels: 1, format: pcm_int16}
+  audio_output: {sample_rate: 24000, channels: 1, format: pcm_int16}
+  display: none
+  imu: none
+  actuator: none
+transport:
+  type: http
+  host: localhost
+  port: 8420
+hal_server:
+  http_port: 8421
+  ws_port: 8422
+capabilities: [camera, microphone, audio_output, status_indicator]
+mwdat:
+  mock_mode: true  # set false when using real glasses
+  developer_mode_required: true

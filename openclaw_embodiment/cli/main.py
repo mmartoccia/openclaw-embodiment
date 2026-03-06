@@ -132,5 +132,78 @@ def demo(config: str = typer.Option("config.yaml")) -> None:
     typer.echo("demo complete")
 
 
+@app.command("validate")
+def validate(
+    profile: str = typer.Argument(help="Profile name to validate (e.g. meta-rayban, unitree-go2)"),
+    config_file: str = typer.Option(None, "--config", "-c", help="Path to profile YAML config file"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show full check details"),
+) -> None:
+    """Validate a device profile against the HAL contract (7 checks).
+
+    Runs all validation checks in simulator mode -- no hardware required.
+    Use --config to pass a custom YAML config for the profile.
+
+    Example::
+
+        openclaw-embodiment validate meta-rayban
+        openclaw-embodiment validate unitree-go2 --verbose
+    """
+    import yaml as _yaml
+
+    config: dict = {}
+    if config_file:
+        try:
+            with open(config_file) as f:
+                config = _yaml.safe_load(f) or {}
+        except Exception as exc:
+            typer.echo(f"❌ Failed to load config file '{config_file}': {exc}", err=True)
+            raise typer.Exit(1)
+    else:
+        # Try to auto-load profile YAML from profiles directory
+        import importlib.resources
+        from pathlib import Path as _Path
+        profiles_dir = _Path(__file__).parent.parent / "profiles"
+        yaml_name = profile.replace("-", "_") + ".yaml"
+        yaml_path = profiles_dir / yaml_name
+        if yaml_path.exists():
+            try:
+                import yaml as _yaml2
+                with open(yaml_path) as f:
+                    config = _yaml2.safe_load(f) or {}
+            except Exception:  # grain: ignore NAKED_EXCEPT -- YAML load; file may be missing or malformed
+                config = {}
+
+    from ..validation.validator import ProfileValidator
+
+    typer.echo(f"🔍 Validating profile: {profile}")
+    typer.echo(f"   Config: {'from file' if config_file else 'auto-loaded' if config else 'defaults'}")
+    typer.echo("")
+
+    validator = ProfileValidator(profile, config)
+
+    import time as _time
+    t0 = _time.monotonic()
+    report = validator.run()
+    elapsed = _time.monotonic() - t0
+
+    # Print check results
+    for check in report.checks:
+        icon = "✅" if check.passed else ("⚠️ " if check.warning else "❌")
+        if verbose or not check.passed:
+            typer.echo(f"  {icon} [{check.elapsed_ms}ms] {check.name}: {check.message}")
+        else:
+            typer.echo(f"  {icon} {check.name}")
+
+    typer.echo("")
+    overall_icon = {"pass": "✅", "fail": "❌", "warn": "⚠️ "}.get(report.overall, "?")
+    typer.echo(f"{overall_icon} Overall: {report.overall.upper()}")
+    typer.echo(f"   Passed: {report.passed} / {report.passed + report.failed}")
+    typer.echo(f"   Hardware Ready: {report.hardware_ready}")
+    typer.echo(f"   Validation time: {elapsed:.2f}s")
+
+    if report.overall == "fail":
+        raise typer.Exit(1)
+
+
 if __name__ == "__main__":
     app()

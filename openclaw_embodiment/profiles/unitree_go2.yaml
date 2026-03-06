@@ -1,0 +1,15 @@
+profile: unitree-go2
+display_name: Unitree Go2 Quadruped Robot
+hardware:
+  camera: {type: webrtc, resolution: "1920x1080", fps: 30}
+  imu: {type: unitree_imu, rate_hz: 500}
+  actuator: {type: sport_client, gaits: [walk, trot, bound]}
+  audio_output: {type: onboard_speaker}
+transport:
+  type: http
+  host: 192.168.123.161
+  port: 8080
+capabilities: [camera, imu, actuator, audio_output, system_health]
+sdk: unitree_sdk2py
+simulation:
+  enabled: true  # unitree_sdk2py simulation mode

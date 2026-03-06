@@ -131,6 +131,33 @@ class ProfileManifest:
             suggested_config={"host": "pizero.local"},
             confidence=0.7,
         ),
+        DeviceSignature(
+            profile_name="meta-rayban",
+            ble_names=["Ray-Ban", "RayBan", "MWDAT"],
+            network_ports=[("localhost", 8421)],
+            suggested_config={"mwdat": {"mock_mode": False}, "hal_server": {"http_port": 8421, "ws_port": 8422}},
+            confidence=0.9,
+        ),
+        DeviceSignature(
+            profile_name="unitree-go2",
+            ble_names=["Go2", "Unitree"],
+            network_ports=[("192.168.123.161", 8080)],
+            suggested_config={"transport": {"host": "192.168.123.161", "port": 8080}},
+            confidence=0.95,
+        ),
+        DeviceSignature(
+            profile_name="apple-vision-pro",
+            ble_names=["Vision Pro", "AVP"],
+            network_ports=[("localhost", 8430)],
+            suggested_config={"transport": {"host": "localhost", "port": 8430}},
+            confidence=0.9,
+        ),
+        DeviceSignature(
+            profile_name="openglass",
+            ble_names=["OpenGlass"],
+            suggested_config={"transport": {"advertised_name": "OpenGlass"}},
+            confidence=0.95,
+        ),
     ]
 
     def __init__(self) -> None:

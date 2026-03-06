@@ -1,0 +1,11 @@
+profile: apple-vision-pro
+display_name: Apple Vision Pro
+hardware:
+  camera: {type: replaykit_stream, fps: 30}
+  imu: {type: head_pose, dof: 6}
+  display: {type: spatial_overlay, resolution: "3680x3504"}
+transport:
+  type: websocket
+  host: localhost
+  port: 8430
+capabilities: [camera, imu, display, transport]

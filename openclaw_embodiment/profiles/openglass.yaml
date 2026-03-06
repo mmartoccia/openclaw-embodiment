@@ -1,0 +1,34 @@
+profile: openglass
+display_name: OpenGlass (ESP32-S3 DIY AI Glasses)
+hardware:
+  camera: {type: ble_gatt, mtu: 512, fps: 1}
+  microphone: {sample_rate: 8000, channels: 1, format: pcm_int16}
+  display: {type: status_only}
+  battery: {type: ble_battery_service}
+transport:
+  type: ble
+  advertised_name: OpenGlass
+  service_uuid: "00001234-0000-1000-8000-00805f9b34fb"
+capabilities: [camera, microphone, status_indicator, power]
+
+inference:
+  # Ultra-edge: ESP32-S3 has 512KB SRAM + 8MB PSRAM -- no viable LLM fits on-chip.
+  # All LLM/VLM inference must be offloaded to companion phone or cloud gateway.
+  # On-device only: wake-word detection via TFLite Micro.
+  local_llm:
+    recommended: null  # no on-device LLM viable at this tier
+    framework: null
+    notes: "ESP32-S3: <10MB budget. Offload all reasoning to companion device or gateway."
+  stt:
+    recommended: null  # wake-word only via TFLite Micro keyword spotter
+    framework: "tflite-micro"
+    alternatives:
+      - model: "keyword-spotter"
+        framework: "tflite-micro"
+        tradeoff: "wake-word detection only, no transcription"
+  vlm:
+    recommended: null  # no VLM viable at this tier
+    framework: null
+    notes: "Camera frames streamed via BLE to companion for VLM inference."
+  tier: "ultra-edge"
+  offload_target: "companion_phone_or_gateway"
