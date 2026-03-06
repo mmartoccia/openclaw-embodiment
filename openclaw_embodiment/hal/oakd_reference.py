@@ -367,6 +367,10 @@ class OakDTransportHAL(TransportHal):
             "note": "Wearable Packet v1 over HTTP; OAK-D on USB-C to host",
         }
 
+    def get_expected_latency_ms(self) -> int:
+        """HTTP over LAN -- expected ~10ms one-way latency."""
+        return 10
+
     def _set_state(self, state: TransportState) -> None:
         self._state = state
         if self._cb:

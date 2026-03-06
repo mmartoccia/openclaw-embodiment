@@ -2,9 +2,10 @@
 
 import queue
 import time
+from collections import deque
 from typing import Callable, Optional
 
-from .base import AudioChunk, AudioOutputHal, CameraFrame, CameraHal, ClassificationResult, ClassifierHal, DisplayCard, DisplayHal, IMUHal, IMUSample, MicrophoneHal, SendResult, TransportHal, TransportState
+from .base import AudioChunk, AudioOutputHal, CameraFrame, CameraHal, ClassificationResult, ClassifierHal, DisplayCard, DisplayHal, IMUHal, IMUSample, MicrophoneHal, SendResult, StatusIndicatorHal, TransportHal, TransportState
 
 
 def _ms() -> int:
@@ -127,6 +128,7 @@ class SimulatedTransport(TransportHal):
         self.state = TransportState.DISCONNECTED
         self.q = queue.Queue()
         self.cb = None  # type: Optional[Callable[[TransportState], None]]
+        self._latency_window: deque = deque(maxlen=10)
 
     def _emit(self, state: TransportState) -> None:
         self.state = state
@@ -142,7 +144,9 @@ class SimulatedTransport(TransportHal):
     def send(self, payload: bytes) -> SendResult:
         t0 = _ms()
         self.q.put(payload)
-        return SendResult(True, len(payload), _ms() - t0)
+        elapsed = _ms() - t0
+        self._latency_window.append(elapsed)
+        return SendResult(True, len(payload), elapsed)
 
     def receive(self, timeout_ms: int = 1000) -> Optional[bytes]:
         try:
@@ -167,6 +171,68 @@ class SimulatedTransport(TransportHal):
 
     def get_device_info(self) -> dict:
         return {"name": "sim-txp", "type": "ble", "max_throughput_bps": 1000000, "mtu": 247}
+
+    def get_expected_latency_ms(self) -> int:
+        """Simulator returns 1ms expected latency (in-process loopback)."""
+        return 1
+
+    def get_measured_latency_ms(self) -> Optional[int]:
+        """Return rolling average of last 10 send latencies, or None."""
+        if not self._latency_window:
+            return None
+        return int(sum(self._latency_window) / len(self._latency_window))
+
+
+class SimulatedStatusIndicator(StatusIndicatorHal):
+    """In-memory status indicator for testing -- records last state."""
+
+    def __init__(self) -> None:
+        self.color: tuple = (0, 0, 0)
+        self.pattern: Optional[str] = None
+        self.is_on: bool = False
+        self.blink_interval_ms: Optional[int] = None
+
+    def initialize(self) -> None:
+        self.off()
+
+    def set_color(self, r: int, g: int, b: int) -> None:
+        if not (0 <= r <= 255 and 0 <= g <= 255 and 0 <= b <= 255):
+            raise ValueError(f"RGB channels must be 0-255, got ({r}, {g}, {b})")
+        self.color = (r, g, b)
+        self.is_on = (r, g, b) != (0, 0, 0)
+        self.pattern = None
+        self.blink_interval_ms = None
+
+    def blink(self, interval_ms: int = 500) -> None:
+        self.blink_interval_ms = interval_ms
+        self.pattern = None
+        self.is_on = True
+
+    def pulse(self, pattern: str = "heartbeat") -> None:
+        valid = {"heartbeat", "alert", "processing", "idle"}
+        if pattern not in valid:
+            raise ValueError(f"Unknown pattern {pattern!r}. Valid: {valid}")
+        self.pattern = pattern
+        self.blink_interval_ms = None
+        self.is_on = True
+
+    def off(self) -> None:
+        self.color = (0, 0, 0)
+        self.pattern = None
+        self.blink_interval_ms = None
+        self.is_on = False
+
+    def shutdown(self) -> None:
+        self.off()
+
+    def validate(self) -> bool:
+        self.set_color(0, 255, 0)
+        result = self.color == (0, 255, 0)
+        self.off()
+        return result
+
+    def get_device_info(self) -> dict:
+        return {"name": "sim-led", "type": "simulator", "rgb": True}
 
 
 class SimulatedDisplay(DisplayHal):

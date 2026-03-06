@@ -483,6 +483,10 @@ class FrameTransportHAL(TransportHal):
             "note": "BLE 5.3 via Frame SDK bluetooth data channel",
         }
 
+    def get_expected_latency_ms(self) -> int:
+        """BLE 5.3 -- expected ~50ms one-way latency."""
+        return 50
+
     def _set_state(self, state: TransportState) -> None:
         self._state = state
         if self._cb:

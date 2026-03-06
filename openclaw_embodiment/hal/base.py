@@ -248,6 +248,29 @@ class TransportHal(HALBase, ABC):
     def shutdown(self) -> None:
         """Shutdown transport."""
 
+    @abstractmethod
+    def get_expected_latency_ms(self) -> int:
+        """Return the expected one-way send latency in milliseconds.
+
+        Used by the pipeline to adjust actuation timing.
+        BLE: ~50ms, HTTP: ~10ms, LocalMLX: ~5ms.
+
+        Returns:
+            Estimated latency in milliseconds.
+        """
+        ...
+
+    def get_measured_latency_ms(self) -> Optional[int]:
+        """Return rolling average of last 10 send latencies in milliseconds.
+
+        Returns None until at least one send has completed.
+        Override in implementations that track per-send timing.
+
+        Returns:
+            Rolling average elapsed_ms or None if no data yet.
+        """
+        return None
+
 
 class DisplayHal(HALBase, ABC):
     """Display abstraction."""
@@ -425,3 +448,87 @@ class PowerHal(HALBase, ABC):
     @abstractmethod
     def shutdown(self) -> None:
         """Shutdown power monitoring."""
+
+
+# ---------------------------------------------------------------------------
+# Status indicator layer -- LED / visual feedback
+# ---------------------------------------------------------------------------
+
+class StatusPattern(Enum):
+    """Named LED animation patterns."""
+
+    HEARTBEAT = "heartbeat"
+    ALERT = "alert"
+    PROCESSING = "processing"
+    IDLE = "idle"
+
+
+class StatusIndicatorHal(HALBase, ABC):
+    """Hardware abstraction for LED / status indicator hardware.
+
+    Provides a uniform interface for visual device status feedback across
+    all supported platforms: Reachy Mini front LED, Even G2 indicator,
+    Pi GPIO LED strip, and simulator.
+
+    Contract:
+    - All methods complete within 50ms.
+    - Thread-safe. Lifecycle idempotent.
+    - ``off()`` is always safe to call regardless of current state.
+    """
+
+    HAL_VERSION = "1.0.0"
+
+    @abstractmethod
+    def initialize(self) -> None:
+        """Initialize LED hardware and set to idle state.
+
+        Raises:
+            HardwareError: If LED hardware cannot be initialised.
+        """
+        ...
+
+    @abstractmethod
+    def set_color(self, r: int, g: int, b: int) -> None:
+        """Set LED to a solid RGB colour.
+
+        Args:
+            r: Red channel 0-255.
+            g: Green channel 0-255.
+            b: Blue channel 0-255.
+
+        Raises:
+            ValueError: If any channel is outside 0-255.
+        """
+        ...
+
+    @abstractmethod
+    def blink(self, interval_ms: int = 500) -> None:
+        """Start blinking at the given interval (on+off cycle).
+
+        Args:
+            interval_ms: Full on-off cycle duration in milliseconds.
+                         Minimum 50ms.
+        """
+        ...
+
+    @abstractmethod
+    def pulse(self, pattern: str = "heartbeat") -> None:
+        """Start a named animation pattern.
+
+        Args:
+            pattern: One of ``"heartbeat"``, ``"alert"``, ``"processing"``, ``"idle"``.
+
+        Raises:
+            ValueError: If pattern is not a recognised StatusPattern name.
+        """
+        ...
+
+    @abstractmethod
+    def off(self) -> None:
+        """Turn off all LEDs immediately. Always safe to call."""
+        ...
+
+    @abstractmethod
+    def shutdown(self) -> None:
+        """Release LED hardware resources. Idempotent."""
+        ...

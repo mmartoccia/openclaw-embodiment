@@ -805,6 +805,10 @@ class G2TransportHAL(TransportHal):
     def validate(self) -> bool:
         return True
 
+    def get_expected_latency_ms(self) -> int:
+        """BLE (G2) -- expected ~50ms one-way latency."""
+        return 50
+
     def get_device_info(self) -> dict:
         return {
             "name": "g2-transport",

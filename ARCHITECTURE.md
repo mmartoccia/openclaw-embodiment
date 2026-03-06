@@ -100,6 +100,52 @@ There are two modes of context delivery to the glasses:
 
 ---
 
+## Bidirectional Loop (v1.1+)
+
+Gate 4 closes the full device-to-agent-to-device loop:
+
+```
+[ Device -- Edge Node ]                   [ OpenClaw Host ]
+  IMU / Camera / Mic                         TriggerDetector
+  AudioTriggerDetector  -- TriggerArbiter -> TriggerEvent
+                                             ContextBuilder
+                                             TransportHal (BLE/HTTP/LocalMLX)
+                                                  |
+                                             Agent Runtime
+                                             (onAgentEvent)
+                                                  |
+  AudioOutputHal.speak() <-- AgentResponseListener
+  DisplayHal.show_card() <-/
+  ActuatorHal.execute()  <-/
+```
+
+**Flow:**
+1. `TriggerDetector` OR `AudioTriggerDetector` fires.
+2. `TriggerArbiter` fuses multi-modal signals into one `TriggerEvent`.
+3. `HeartbeatWake` pings the agent immediately (removes 30s latency).
+4. Pipeline captures frame + audio, classifies, builds `ContextPayload`.
+5. `TransportHal` delivers payload (BLE, HTTP, LocalMLX, or Attachment).
+6. Agent processes and emits `AgentResponse` via `onAgentEvent`.
+7. `AgentResponseListener` routes response to `AudioOutputHal` (TTS) and `DisplayHal` in parallel.
+8. `StatusIndicatorHal` shows feedback during each stage.
+
+---
+
+## LocalMLX Routing (v1.2+)
+
+```
+                    ContextPayload
+                          |
+                 LocalMLXTransport (5ms, offline)
+                     /           \
+             <100ms fast path    >200ms fallback
+             (Qwen3-0.6B-4bit)   HTTPTransport -> OpenClaw gateway
+```
+
+Local inference via `mlx_lm` on Apple Silicon. Hybrid routing: local for fast responses, gateway for complex multi-step reasoning. Fully offline fallback with zero cloud dependency.
+
+---
+
 ## SDK Build Order (Reference Implementation)
 
 | Phase | Goal | Milestone |

@@ -766,6 +766,10 @@ class PiBLETransport(TransportHal):
             "mtu": self._mtu,
         }
 
+    def get_expected_latency_ms(self) -> int:
+        """BLE -- expected ~50ms one-way latency."""
+        return 50
+
     def validate(self) -> bool:
         if not self._initialized:
             return False
@@ -886,6 +890,10 @@ class PiWiFiTransport(TransportHal):
             "max_throughput_bps": 10_000_000,
             "mtu": 1500,
         }
+
+    def get_expected_latency_ms(self) -> int:
+        """WiFi/TCP -- expected ~10ms one-way latency."""
+        return 10
 
     def validate(self) -> bool:
         return self._initialized

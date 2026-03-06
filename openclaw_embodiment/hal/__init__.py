@@ -20,6 +20,8 @@ from .base import (
     PowerHal,
     PowerSource,
     SendResult,
+    StatusIndicatorHal,
+    StatusPattern,
     TransportHal,
     TransportState,
 )
@@ -65,6 +67,8 @@ from .reachy2_reference import (
 )
 
 __all__ = [
+    "StatusIndicatorHal",
+    "StatusPattern",
     "IMUHal",
     "IMUSample",
     "CameraHal",

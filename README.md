@@ -4,7 +4,8 @@
 > A pure-Python hardware abstraction layer (HAL) that connects physical devices -- including Reachy Mini -- to the OpenClaw agent runtime. Robots, wearables, and edge compute in one open source SDK.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-Gate%203%20complete-green.svg)](ROADMAP.md)
+[![Status](https://img.shields.io/badge/status-v1.2.0%20Gate%204%20complete-green.svg)](ROADMAP.md)
+[![Tests](https://img.shields.io/badge/tests-270%20passing-brightgreen.svg)](tests/)
 [![Repo](https://img.shields.io/badge/repo-mmartoccia%2Fopenclaw--embodiment-black.svg)](https://github.com/mmartoccia/openclaw-embodiment)
 
 ---
@@ -35,23 +36,30 @@ No ROS dependency. No proprietary lock-in. Six device profiles ship out of the b
 └────────────────────────┬────────────────────────────────┘
                          │  HAL ABCs (openclaw_embodiment.hal)
 ┌────────────────────────▼────────────────────────────────┐
-│                  TriggerDetector                         │
-│         IDLE → SACCADE → FIXATION → CAPTURE             │
+│     TriggerDetector (visual)  +  AudioTriggerDetector   │
+│     IDLE → SACCADE → FIXATION → CAPTURE                 │
+│                    TriggerArbiter                        │
+│     (FIRST_WINS | AUDIO_PRIORITY | HIGHEST_CONFIDENCE)  │
 └────────────────────────┬────────────────────────────────┘
-                         │  ContextPacket (frame + IMU + audio)
+                         │  TriggerEvent + HeartbeatWake
 ┌────────────────────────▼────────────────────────────────┐
-│              TransportHal (BLE or HTTP)                  │
+│   TransportHal: BLE · HTTP · LocalMLX · Attachment      │
+│   (latency-aware: BLE 50ms | HTTP 10ms | MLX 5ms)       │
 └────────────────────────┬────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────┐
 │             OpenClaw Agent Runtime                       │
 │        Memory · Skills · Multi-agent · Cron             │
 └────────────────────────┬────────────────────────────────┘
-                         │  Agent response
+                         │  AgentResponse (onAgentEvent)
 ┌────────────────────────▼────────────────────────────────┐
-│        ActuatorHal · AudioOutputHal · DisplayHal        │
+│        AgentResponseListener (Gate 4 -- bidirectional)  │
+│  AudioOutputHal.speak() · DisplayHal.show_card()        │
+│  ActuatorHal.execute() · StatusIndicatorHal.pulse()     │
 └─────────────────────────────────────────────────────────┘
 ```
+
+**Gate 4 complete:** The full `device → agent → device` loop is operational. Reachy hears, sees, and responds.
 
 ---
 

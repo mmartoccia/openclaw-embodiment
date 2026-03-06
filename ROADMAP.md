@@ -36,32 +36,33 @@ Current trigger architecture polls at 25Hz but the agent only wakes at the next 
 
 ---
 
-## Current Status (Gate 3 Complete)
+## Current Status (v1.2.0 -- All Gates Complete)
 
-**Package:** `openclaw-embodiment` (Python, Apache 2.0)
+**Package:** `openclaw-embodiment` v1.2.0 (Python, Apache 2.0)
 **Repo:** [github.com/mmartoccia/openclaw-embodiment](https://github.com/mmartoccia/openclaw-embodiment)
 
 | Metric | Value |
 |--------|-------|
-| HAL ABCs | 8 |
-| Device profiles | 6 |
-| Test coverage | 22 tests passing |
+| HAL ABCs | 9 (+ StatusIndicatorHal) |
+| Device profiles | 7 (+ Reachy 2 full humanoid) |
+| Test coverage | 270 tests passing |
 | Hardware validated | Raspberry Pi CM5 (Reachy Mini compute module) |
-| Gate | 3 of 4 complete |
+| Gate | 4 of 4 complete |
 
-**8 HAL ABCs:** IMUHal, CameraHal, MicrophoneHal, AudioOutputHal, DisplayHal, TransportHal, ActuatorHal, PowerHal
+**9 HAL ABCs:** IMUHal, CameraHal, MicrophoneHal, AudioOutputHal, DisplayHal, TransportHal, ActuatorHal, PowerHal, **StatusIndicatorHal**
 
-**6 Device profiles:**
+**7 Device profiles:**
 1. `reachy-mini` -- Reachy Mini Lite (Pollen Robotics / HuggingFace), HTTP transport, tested on CM5
-2. `pi5-picam` -- Raspberry Pi 5 + PiCamera Module 3, BLE transport
-3. `pi-zero2w` -- Raspberry Pi Zero 2W + PiCamera, BLE, performance-constrained
-4. `luxonis-oakd` -- Luxonis OAK-D AI camera, USB + HTTP, visual motion proxy
-5. `frame-glasses` -- Brilliant Labs Frame AR glasses, BLE, 640x400 OLED display
-6. `even-g2` -- Even Realities G2 smart glasses, BLE dual-arm, LC3 audio, BMP display
+2. `reachy2` -- Reachy 2 full humanoid, 7-DOF arms x2, mobile base, stereo cameras
+3. `pi5-picam` -- Raspberry Pi 5 + PiCamera Module 3, BLE transport
+4. `pi-zero2w` -- Raspberry Pi Zero 2W + PiCamera, BLE, performance-constrained
+5. `luxonis-oakd` -- Luxonis OAK-D AI camera, USB + HTTP, visual motion proxy
+6. `frame-glasses` -- Brilliant Labs Frame AR glasses, BLE, 640x400 OLED display
+7. `even-g2` -- Even Realities G2 smart glasses, BLE dual-arm, LC3 audio, BMP display
 
 ---
 
-## v1.1 -- Next
+## v1.1 -- Complete ✅
 
 **Theme: Multi-modal trigger detection + latency awareness**
 
@@ -95,7 +96,7 @@ Current trigger architecture polls at 25Hz but the agent only wakes at the next 
 
 ---
 
-## v1.2 — Agent Loop Completion
+## v1.2 -- Complete ✅
 
 **Theme: Close the bidirectional loop + native OpenClaw integration**
 
@@ -133,9 +134,11 @@ Current trigger architecture polls at 25Hz but the agent only wakes at the next 
 
 ---
 
-## v2.0 -- Future
+## v2.0 -- Design Complete, Implementation Pending
 
 **Theme: Unified orchestration + platform maturity**
+
+> Specs: `docs/specs/v2.0-hal-orchestrator.md` and `docs/specs/v2.0-cross-embodiment.md`
 
 ### HalOrchestrator
 - Explicit `trigger → capture → transport → actuate` loop as a first-class Python object
