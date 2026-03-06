@@ -12,12 +12,13 @@ from .ios_companion import (
     iOSCompanionProfile,
     iOSCompanionReceiver,
     iOSSensorPayload,
-    PROFILE as IOS_COMPANION_PROFILE,
+    get_profile as get_ios_companion_profile,
 )
 
 # Registry of Python-native profiles (not YAML-based)
+# ios-companion is lazy -- instantiated on first use to avoid binding port at import time
 _NATIVE_PROFILES: Dict[str, Any] = {
-    "ios-companion": IOS_COMPANION_PROFILE,
+    "ios-companion": None,  # use get_ios_companion_profile() to instantiate
 }
 
 
@@ -47,8 +48,11 @@ def load_profile(name: Optional[str] = None) -> Any:
 
     # Check native Python profiles first
     if name in _NATIVE_PROFILES:
-        profile = _NATIVE_PROFILES[name]
-        if hasattr(profile, "as_dict"):
+        if name == "ios-companion":
+            profile = get_ios_companion_profile()
+        else:
+            profile = _NATIVE_PROFILES[name]
+        if profile is not None and hasattr(profile, "as_dict"):
             return profile.as_dict()
         return {"name": name}
 
@@ -77,5 +81,5 @@ __all__ = [
     "iOSCompanionProfile",
     "iOSCompanionReceiver",
     "iOSSensorPayload",
-    "IOS_COMPANION_PROFILE",
+    "get_ios_companion_profile",
 ]

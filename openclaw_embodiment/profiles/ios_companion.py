@@ -751,5 +751,14 @@ class iOSCompanionProfile:
 
 # ── Module-level exported profile ────────────────────────────────────────────
 
-PROFILE = iOSCompanionProfile()
+# Lazy singleton -- instantiated on first access to avoid binding port at import time.
+_PROFILE: Optional[iOSCompanionProfile] = None
+
+
+def get_profile(**kwargs) -> iOSCompanionProfile:
+    """Return the shared iOSCompanionProfile, creating it on first call."""
+    global _PROFILE
+    if _PROFILE is None:
+        _PROFILE = iOSCompanionProfile(**kwargs)
+    return _PROFILE
 """Module-level DeviceProfile instance for the iOS companion sensor node."""

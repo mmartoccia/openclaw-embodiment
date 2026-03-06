@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "openclaw-embodiment"
-version = "1.2.0"
+version = "2.2.0"
 description = "Hardware abstraction layer connecting robots, wearables, and edge devices to the OpenClaw AI agent framework"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -75,7 +75,7 @@ pi_wifi = "openclaw_embodiment.hal.pi3_reference:PiWiFiTransport"
 include-package-data = true
 
 [tool.setuptools.package-data]
-"openclaw_embodiment" = ["models/*.tflite", "config/*.yaml"]
+"openclaw_embodiment" = ["models/*.tflite", "config/*.yaml", "profiles/*.yaml"]
 
 [tool.ruff]
 line-length = 100
